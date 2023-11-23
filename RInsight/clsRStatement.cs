@@ -408,7 +408,7 @@ public class clsRStatement
 /// <returns>   A token tree where presentation information is stored as a child of the next 
 ///             non-presentation element. </returns>
 /// --------------------------------------------------------------------------------------------
-    private List<clsRToken> GetLstPresentation(List<clsRToken> lstTokens, int iPos)
+    private static List<clsRToken> GetLstPresentation(List<clsRToken> lstTokens, int iPos)
     {
 
         if (lstTokens.Count < 1)
@@ -850,7 +850,7 @@ public class clsRStatement
 /// 
 /// <returns>   A clone of the next token in the <paramref name="lstTokens"/> list. </returns>
 /// --------------------------------------------------------------------------------------------
-    private clsRToken GetNextToken(List<clsRToken> lstTokens, int iPosTokens)
+    private static clsRToken GetNextToken(List<clsRToken> lstTokens, int iPosTokens)
     {
         if (iPosTokens >= lstTokens.Count - 1)
         {
@@ -877,7 +877,7 @@ public class clsRStatement
 /// <returns>   An R element object constructed from the <paramref name="clsToken"/>
 ///             token. </returns>
 /// --------------------------------------------------------------------------------------------
-    private clsRElement GetRElement(clsRToken clsToken, Dictionary<string, clsRStatement> dctAssignments, bool bBracketedNew = false, string strPackageName = "", string strPackagePrefix = "", List<clsRElement> lstObjects = null)
+    private clsRElement GetRElement(clsRToken clsToken, Dictionary<string, clsRStatement> dctAssignments, bool bBracketedNew = false, string strPackageName = "", string strPackagePrefix = "", List<clsRElement>? lstObjects = null)
     {
         if (clsToken == null)
         {
@@ -1050,7 +1050,7 @@ public class clsRStatement
                     // if element has a package name or object list, then return a property element
                     if (!string.IsNullOrEmpty(strPackageName) || !(lstObjects == null))
                     {
-                        return new clsRElementProperty(clsToken, bBracketedNew, strPackageName, strPackagePrefix, lstObjects);
+                        return new clsRElementProperty(clsToken, lstObjects, bBracketedNew, strPackageName, strPackagePrefix);
                     }
 
                     // if element was assigned in a previous statement, then return an assigned element
@@ -1093,7 +1093,7 @@ public class clsRStatement
 /// <returns>   The package name associated with the <paramref name="clsToken"/> package 
 ///             operator. </returns>
 /// --------------------------------------------------------------------------------------------
-    private clsRToken GetTokenPackageName(clsRToken clsToken)
+    private static clsRToken GetTokenPackageName(clsRToken clsToken)
     {
         if (clsToken == null)
         {
@@ -1181,7 +1181,7 @@ public class clsRStatement
                         // throws exception if nonpresentation child not found
                         return GetRParameterNamed(GetChildPosNonPresentation(clsToken), dctAssignments);
                     }
-                    catch (Exception ex)
+                    catch (Exception)
                     {
                         // return empty parameter (e.g. for cases like 'fn(a,)')
                         return new clsRParameter();
@@ -1210,7 +1210,7 @@ public class clsRStatement
 /// <returns>   The first child of <paramref name="clsToken"/> that is not a presentation token 
 ///             or a close bracket ')'. </returns>
 /// --------------------------------------------------------------------------------------------
-    private clsRToken GetChildPosNonPresentation(clsRToken clsToken)
+    private static clsRToken GetChildPosNonPresentation(clsRToken clsToken)
     {
         if (clsToken == null)
         {

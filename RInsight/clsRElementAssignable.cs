@@ -9,9 +9,9 @@ public class clsRElementAssignable : clsRElement
 /// <code>
 /// a=1<para>
 /// b=a</para></code></summary>
-    public clsRStatement clsStatement;
+    public clsRStatement? clsStatement;
 
-    public clsRElementAssignable(clsRToken clsToken, clsRStatement clsStatementNew = null, bool bBracketedNew = false, string strPackagePrefix = "") : base(clsToken, bBracketedNew, strPackagePrefix)
+    public clsRElementAssignable(clsRToken clsToken, clsRStatement? clsStatementNew = null, bool bBracketedNew = false, string strPackagePrefix = "") : base(clsToken, bBracketedNew, strPackagePrefix)
     {
         clsStatement = clsStatementNew;
     }

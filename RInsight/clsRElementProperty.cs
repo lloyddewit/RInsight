@@ -7,12 +7,12 @@ public class clsRElementProperty : clsRElementAssignable
 {
 
     public string strPackageName = ""; // only used for functions and variables (e.g. 'constants::syms$h')
-    public List<clsRElement> lstObjects = new List<clsRElement>(); // only used for functions and variables (e.g. 'constants::syms$h')
+    public List<clsRElement>? lstObjects = new List<clsRElement>(); // only used for functions and variables (e.g. 'constants::syms$h')
 
-    public clsRElementProperty(clsRToken clsToken, bool bBracketedNew = false, string strPackageNameNew = "", string strPackagePrefix = "", List<clsRElement> lstObjectsNew = null) : base(GetTokenCleanedPresentation(clsToken, strPackageNameNew, lstObjectsNew), null, bBracketedNew, strPackagePrefix)
+    public clsRElementProperty(clsRToken clsToken, List<clsRElement>? lstObjectsNew, bool bBracketedNew = false, string strPackageNameNew = "", string strPackagePrefix = "") : base(GetTokenCleanedPresentation(clsToken, strPackageNameNew, lstObjectsNew), null, bBracketedNew, strPackagePrefix)
     {
         strPackageName = strPackageNameNew;
-        lstObjects = lstObjectsNew;
+        lstObjects = lstObjectsNew ?? new List<clsRElement>();
     }
 
     private static clsRToken GetTokenCleanedPresentation(clsRToken clsToken, string strPackageNameNew, List<clsRElement> lstObjectsNew)

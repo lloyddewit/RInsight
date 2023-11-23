@@ -6,7 +6,7 @@ public class clsRElementKeyWord : clsRElement
 {
 
     public List<clsRParameter> lstRParameters = new List<clsRParameter>();
-    public clsRScript clsScript;
+    public clsRScript? clsScript;
 
     public clsRElementKeyWord(clsRToken clsToken, bool bBracketedNew = false) : base(clsToken, bBracketedNew)
     {

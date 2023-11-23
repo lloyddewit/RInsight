@@ -30,13 +30,13 @@ namespace RInsight;
 // strInput = "df[1:2,c(""x"",""y"")]"
 // 
 
-/// <summary>   TODO Add class summary. </summary>
+    /// <summary>   TODO Add class summary. </summary>
 public class clsRScript
 {
 
     /// <summary>   
-/// The R statements in the script. The dictionary key is the start position of the statement 
-/// in the script. The dictionary value is the statement itself. </summary>
+    /// The R statements in the script. The dictionary key is the start position of the statement 
+    /// in the script. The dictionary value is the statement itself. </summary>
     public OrderedDictionary dctRStatements = new OrderedDictionary();
 
     /// <summary>   The current state of the token parsing. </summary>
@@ -49,23 +49,23 @@ public class clsRScript
     }
 
     /// --------------------------------------------------------------------------------------------
-/// <summary>   Parses the R script in <paramref name="strInput"/> and populates the distionary
-///             of R statements.
-///             <para>
-///             This subroutine will accept, and correctly process all valid R. However, this 
-///             class does not attempt to validate <paramref name="strInput"/>. If it is not 
-///             valid R then this subroutine may still process the script without throwing an 
-///             exception. In this case, the list of R statements will be undefined.
-///             </para><para>
-///             In other words, this subroutine should not generate false negatives (reject 
-///             valid R) but may generate false positives (accept invalid R).
-///             </para></summary>
-/// 
-/// <param name="strInput"> The R script to parse. This must be valid R according to the 
-///                         R language specification at 
-///                         https://cran.r-project.org/doc/manuals/r-release/R-lang.html 
-///                         (referenced 01 Feb 2021).</param>
-/// --------------------------------------------------------------------------------------------
+    /// <summary>   Parses the R script in <paramref name="strInput"/> and populates the distionary
+    ///             of R statements.
+    ///             <para>
+    ///             This subroutine will accept, and correctly process all valid R. However, this 
+    ///             class does not attempt to validate <paramref name="strInput"/>. If it is not 
+    ///             valid R then this subroutine may still process the script without throwing an 
+    ///             exception. In this case, the list of R statements will be undefined.
+    ///             </para><para>
+    ///             In other words, this subroutine should not generate false negatives (reject 
+    ///             valid R) but may generate false positives (accept invalid R).
+    ///             </para></summary>
+    /// 
+    /// <param name="strInput"> The R script to parse. This must be valid R according to the 
+    ///                         R language specification at 
+    ///                         https://cran.r-project.org/doc/manuals/r-release/R-lang.html 
+    ///                         (referenced 01 Feb 2021).</param>
+    /// --------------------------------------------------------------------------------------------
     public clsRScript(string strInput)
     {
         if (string.IsNullOrEmpty(strInput))
@@ -102,40 +102,42 @@ public class clsRScript
     }
 
     /// --------------------------------------------------------------------------------------------
-/// <summary>   Returns <paramref name="strRScript"/> as a list of its constituent lexemes. 
-///             A lexeme is a string of characters that represent a valid R element 
-///             (identifier, operator, keyword, seperator, bracket etc.). A lexeme does not 
-///             include any type information.
-///             <para>
-///             This function identifies lexemes using a technique known as 'longest match' 
-///             or 'maximal munch'. It keeps adding characters to the lexeme one at a time 
-///             until it reaches a character that is not in the set of characters acceptable 
-///             for that lexeme.
-///             </para></summary>
-/// 
-/// <param name="strRScript"> The R script to convert (must be syntactically correct R). </param>
-/// 
-/// <returns>   <paramref name="strRScript"/> as a list of its constituent lexemes. </returns>
-/// --------------------------------------------------------------------------------------------
-    public List<string> GetLstLexemes(string strRScript)
+    /// <summary>   Returns <paramref name="script"/> as a list of its constituent lexemes. 
+    ///             A lexeme is a string of characters that represents a valid R element 
+    ///             (identifier, operator, keyword, seperator, bracket etc.). A lexeme does not 
+    ///             include any type information.
+    ///             <para>
+    ///             This function identifies lexemes using a technique known as 'longest match' 
+    ///             or 'maximal munch'. It keeps adding characters to the lexeme one at a time 
+    ///             until it reaches a character that is not in the set of characters acceptable 
+    ///             for that lexeme.
+    ///             </para></summary>
+    /// 
+    /// <param name="script"> The R script to convert (must be syntactically correct R). </param>
+    /// 
+    /// <returns>   <paramref name="script"/> as a list of its constituent lexemes. </returns>
+    /// --------------------------------------------------------------------------------------------
+    public static List<string> GetLstLexemes(string script)
     {
-
-        if (string.IsNullOrEmpty(strRScript))
+        var lexemes = new List<string>();
+        if (script.Length == 0)
         {
-            return null;
+            return lexemes;
         }
+        
+        string lexeme = "";
+        var bracketStack = new Stack<bool>();
 
-        var lstLexemes = new List<string>();
-        string strTxt = null;
-        var stkIsSingleBracket = new Stack<bool>();
-
-        foreach (char chrNew in strRScript)
+        foreach (char lexemeChar in script)
         {
             // we keep adding characters to the lexeme, one at a time, until we reach a character that 
-            // would make the lexeme invalid
-            if (clsRToken.IsValidLexeme(strTxt + chrNew) && !(strTxt + chrNew == "]]" && (stkIsSingleBracket.Count < 1 || stkIsSingleBracket.Peek()))) // edge case for nested operator brackets (see note below)
+            // would make the lexeme invalid.
+            // Second part of condition is edge case for nested operator brackets (see note below).
+            if (clsRToken.IsValidLexeme(lexeme + lexemeChar) && 
+                !(lexeme + lexemeChar == "]]" && 
+                  (bracketStack.Count < 1 || bracketStack.Peek()))) 
             {
-                strTxt += Conversions.ToString(chrNew);
+                lexeme += lexemeChar;
                 continue;
             }
 
@@ -144,52 +146,52 @@ public class clsRScript
             // of '6' is a single ']' bracket and is not part of a double ']]' bracket.
             // To achieve this, we push each open bracket to a stack so that we know 
             // which type of closing bracket is expected for each open bracket.
-            switch (strTxt ?? "")
+            switch (lexeme)
             {
                 case "[":
                     {
-                        stkIsSingleBracket.Push(true);
+                        bracketStack.Push(true);
                         break;
                     }
                 case "[[":
                     {
-                        stkIsSingleBracket.Push(false);
+                        bracketStack.Push(false);
                         break;
                     }
                 case "]":
                 case "]]":
                     {
-                        if (stkIsSingleBracket.Count < 1)
+                        if (bracketStack.Count < 1)
                         {
-                            throw new Exception("Closing bracket detected ('" + strTxt + "') with no corresponding open bracket.");
+                            throw new Exception("Closing bracket detected ('" + lexeme + "') with no corresponding open bracket.");
                         }
-                        stkIsSingleBracket.Pop();
+                        bracketStack.Pop();
                         break;
                     }
             }
 
             // adding the new char to the lexeme would make the lexeme invalid, 
             // so we add the existing lexeme to the list and start a new lexeme
-            lstLexemes.Add(strTxt);
-            strTxt = Conversions.ToString(chrNew);
+            lexemes.Add(lexeme);
+            lexeme = lexemeChar.ToString();
         }
 
-        lstLexemes.Add(strTxt);
-        return lstLexemes;
+        lexemes.Add(lexeme);
+        return lexemes;
     }
 
     /// --------------------------------------------------------------------------------------------
-/// <summary>   Returns <paramref name="lstLexemes"/> as a list of tokens.
-///             <para>
-///             A token is a string of characters that represent a valid R element, plus meta 
-///             data about the token type (identifier, operator, keyword, bracket etc.). 
-///             </para></summary>
-/// 
-/// <param name="lstLexemes">   The list of lexemes to convert to tokens. </param>
-/// 
-/// <returns>   <paramref name="lstLexemes"/> as a list of tokens. </returns>
-/// --------------------------------------------------------------------------------------------
-    public List<clsRToken> GetLstTokens(List<string> lstLexemes)
+    /// <summary>   Returns <paramref name="lstLexemes"/> as a list of tokens.
+    ///             <para>
+    ///             A token is a string of characters that represent a valid R element, plus meta 
+    ///             data about the token type (identifier, operator, keyword, bracket etc.). 
+    ///             </para></summary>
+    /// 
+    /// <param name="lstLexemes">   The list of lexemes to convert to tokens. </param>
+    /// 
+    /// <returns>   <paramref name="lstLexemes"/> as a list of tokens. </returns>
+    /// --------------------------------------------------------------------------------------------
+    public static List<clsRToken> GetLstTokens(List<string> lstLexemes)
     {
 
         if (lstLexemes is null || lstLexemes.Count == 0)
@@ -455,13 +457,13 @@ public class clsRScript
     }
 
     /// --------------------------------------------------------------------------------------------
-/// <summary>   Returns this object as a valid, executable R script. </summary>
-/// 
-/// <param name="bIncludeFormatting">   If True, then include all formatting information in 
-///     returned string (comments, indents, padding spaces, extra line breaks etc.). </param>
-/// 
-/// <returns>   The current state of this object as a valid, executable R script. </returns>
-/// --------------------------------------------------------------------------------------------
+    /// <summary>   Returns this object as a valid, executable R script. </summary>
+    /// 
+    /// <param name="bIncludeFormatting">   If True, then include all formatting information in 
+    ///     returned string (comments, indents, padding spaces, extra line breaks etc.). </param>
+    /// 
+    /// <returns>   The current state of this object as a valid, executable R script. </returns>
+    /// --------------------------------------------------------------------------------------------
     public string GetAsExecutableScript(bool bIncludeFormatting = true)
     {
         string strTxt = "";
