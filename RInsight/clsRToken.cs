@@ -84,7 +84,7 @@ public class clsRToken
     ///                                      same line as <paramref name="strLexemeCurrent"/>. </param>
     /// 
     /// --------------------------------------------------------------------------------------------
-    public clsRToken(string strLexemePrev, string strLexemeCurrent, string strLexemeNext, bool bLexemePrevOnSameLine, bool bLexemeNextOnSameLine, uint iScriptPosNew)
+    public clsRToken(string? strLexemePrev, string strLexemeCurrent, string? strLexemeNext, bool bLexemePrevOnSameLine, bool bLexemeNextOnSameLine, uint iScriptPosNew)
     {
         if (string.IsNullOrEmpty(strLexemeCurrent))
         {

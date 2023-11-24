@@ -19,7 +19,7 @@ public class clsRStatement
 
     /// <summary>   The assignment operator used in this statement (e.g. '=' in the statement 'a=b').
 ///             If there is no assignment (e.g. as in 'myFunction(a)' then set to 'nothing'. </summary>
-    public string strAssignmentOperator;
+    public string? strAssignmentOperator;
 
     /// <summary>   If this R statement is converted to a script, then contains the formatting 
 ///             string that will prefix the assignment operator.
@@ -29,7 +29,7 @@ public class clsRStatement
 ///             shortName    = 1 <para>
 ///             veryLongName = 2 </para></code>
 ///             </summary>
-    public string strAssignmentPrefix;
+    public string? strAssignmentPrefix;
 
     /// <summary>   If this R statement is converted to a script, then contains the formatting 
 ///             string that will be placed at the end of the statement.
@@ -38,16 +38,16 @@ public class clsRStatement
 ///             <code>
 ///             a = b * 2 # comment1</code>
 ///             </summary>
-    public string strSuffix;
+    public string? strSuffix;
 
     /// <summary>   The element assigned to by the statement (e.g. 'a' in the statement 'a=b').
 ///             If there is no assignment (e.g. as in 'myFunction(a)' then set to 'nothing'. </summary>
-    public clsRElement clsAssignment = null;
+    public clsRElement? clsAssignment = null;
 
     /// <summary>   The element assigned in the statement (e.g. 'b' in the statement 'a=b').
 ///             If there is no assignment (e.g. as in 'myFunction(a)' then set to the top-
 ///             level element in the statement (e.g. 'myFunction'). </summary>
-    public clsRElement clsElement;
+    public clsRElement? clsElement;
 
     /// <summary>   The relative precedence of the R operators. This is a two-dimensional array 
 ///             because the operators are stored in groups together with operators that 
@@ -215,7 +215,7 @@ public class clsRStatement
         else // else if the statement has an assignment
         {
             string strAssignment = GetScriptElement(clsAssignment, bIncludeFormatting);
-            string strAssignmentPrefixTmp = bIncludeFormatting ? strAssignmentPrefix : "";
+            string? strAssignmentPrefixTmp = bIncludeFormatting ? strAssignmentPrefix : "";
             // if the statement has a left assignment (e.g. 'x<-value', 'x<<-value' or 'x=value')
             if (arrOperatorPrecedence[iOperatorsLeftAssignment1].Contains(strAssignmentOperator) || arrOperatorPrecedence[iOperatorsLeftAssignment2].Contains(strAssignmentOperator))
             {
@@ -253,7 +253,7 @@ public class clsRStatement
 /// 
 /// <returns>   <paramref name="clsElement"/> as an executable R script. </returns>
 /// --------------------------------------------------------------------------------------------
-    private string GetScriptElement(clsRElement clsElement, bool bIncludeFormatting = true)
+    private string GetScriptElement(clsRElement? clsElement, bool bIncludeFormatting = true)
     {
 
         if (clsElement == null)
@@ -261,8 +261,8 @@ public class clsRStatement
             return "";
         }
 
-        string strScript = "";
-        string strElementPrefix = Conversions.ToString(bIncludeFormatting ? clsElement.strPrefix : "");
+        string? strScript = "";
+        string? strElementPrefix = Conversions.ToString(bIncludeFormatting ? clsElement.strPrefix : "");
         strScript += Conversions.ToBoolean(clsElement.bBracketed) ? "(" : "";
 
         switch (clsElement.GetType())
@@ -701,7 +701,7 @@ public class clsRStatement
 
         var lstTokensNew = new List<clsRToken>();
         clsRToken clsToken;
-        clsRToken clsTokenPrev = null;
+        clsRToken? clsTokenPrev = null;
         bool bPrevTokenProcessed = false;
 
         int iPosTokens = 0;
@@ -727,6 +727,10 @@ public class clsRStatement
                             }
 
                             // make the previous and next tokens (up to the corresponding close bracket), the children of the current token
+                            if (clsTokenPrev == null)
+                            {
+                                throw new Exception("The bracket operator has no parameter on its left.");
+                            }
                             clsToken.lstTokens.Add(clsTokenPrev.CloneMe());
                             bPrevTokenProcessed = true;
                             iPosTokens += 1;
@@ -877,7 +881,7 @@ public class clsRStatement
 /// <returns>   An R element object constructed from the <paramref name="clsToken"/>
 ///             token. </returns>
 /// --------------------------------------------------------------------------------------------
-    private clsRElement GetRElement(clsRToken clsToken, Dictionary<string, clsRStatement> dctAssignments, bool bBracketedNew = false, string strPackageName = "", string strPackagePrefix = "", List<clsRElement>? lstObjects = null)
+    private clsRElement? GetRElement(clsRToken clsToken, Dictionary<string, clsRStatement> dctAssignments, bool bBracketedNew = false, string strPackageName = "", string strPackagePrefix = "", List<clsRElement>? lstObjects = null)
     {
         if (clsToken == null)
         {
@@ -1000,10 +1004,12 @@ public class clsRStatement
                                         strPackageNameNew = GetTokenPackageName(clsTokenObject).strTxt;
                                         strPackagePrefixNew = GetPackagePrefix(clsTokenObject);
                                         // get the object associated with the package, and add it to the object list
-                                        lstObjectsNew.Add(GetRElement(clsTokenObject.lstTokens[clsTokenObject.lstTokens.Count - 1], dctAssignments));
+                                        var objectElement = GetRElement(clsTokenObject.lstTokens[clsTokenObject.lstTokens.Count - 1], dctAssignments) ?? throw new Exception("The package operator '::' has no associated element.");
+                                        lstObjectsNew.Add(objectElement);
                                         continue;
                                     }
-                                    lstObjectsNew.Add(GetRElement(clsTokenObject, dctAssignments));
+                                    var element = GetRElement(clsTokenObject, dctAssignments) ?? throw new Exception("The object operator '$' has no associated element.");
+                                    lstObjectsNew.Add(element);
                                 }
                                 // the last item in the parameter list is the element we need to return
                                 return GetRElement(clsToken.lstTokens[clsToken.lstTokens.Count - 1], dctAssignments, bBracketedNew, strPackageNameNew, strPackagePrefixNew, lstObjectsNew);
@@ -1146,7 +1152,7 @@ public class clsRStatement
 /// <returns>   A named parameter element constructed from the <paramref name="clsToken"/> token
 ///             tree. </returns>
 /// --------------------------------------------------------------------------------------------
-    private clsRParameter GetRParameterNamed(clsRToken clsToken, Dictionary<string, clsRStatement> dctAssignments)
+    private clsRParameter? GetRParameterNamed(clsRToken clsToken, Dictionary<string, clsRStatement> dctAssignments)
     {
         if (clsToken == null)
         {

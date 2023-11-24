@@ -15,7 +15,7 @@ public class clsRElementProperty : clsRElementAssignable
         lstObjects = lstObjectsNew ?? new List<clsRElement>();
     }
 
-    private static clsRToken GetTokenCleanedPresentation(clsRToken clsToken, string strPackageNameNew, List<clsRElement> lstObjectsNew)
+    private static clsRToken GetTokenCleanedPresentation(clsRToken clsToken, string strPackageNameNew, List<clsRElement>? lstObjectsNew)
     {
         var clsTokenNew = clsToken.CloneMe();
 
@@ -29,21 +29,6 @@ public class clsRElementProperty : clsRElementAssignable
         }
 
         return clsTokenNew;
-    }
-
-    /// --------------------------------------------------------------------------------------------
-/// <summary>   TODO. </summary>
-/// 
-/// <returns>   as debug string. </returns>
-/// --------------------------------------------------------------------------------------------
-    public new string GetAsDebugString()
-    {
-        string strTxt = "ElementProperty: " + Constants.vbLf + "strPackageName: " + strPackageName + Constants.vbLf;
-
-        foreach (clsRElement clsElement in lstObjects)
-            strTxt += clsElement.GetAsDebugString();
-
-        return strTxt;
     }
 
 }

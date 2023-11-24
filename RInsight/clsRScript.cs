@@ -75,6 +75,10 @@ public class clsRScript
 
         var lstLexemes = GetLstLexemes(strInput);
         var lstTokens = GetLstTokens(lstLexemes);
+        if (lstTokens is null)
+        {
+            return;
+        }
 
         int iPos = 0;
         var dctAssignments = new Dictionary<string, clsRStatement>();
@@ -191,7 +195,7 @@ public class clsRScript
     /// 
     /// <returns>   <paramref name="lstLexemes"/> as a list of tokens. </returns>
     /// --------------------------------------------------------------------------------------------
-    public static List<clsRToken> GetLstTokens(List<string> lstLexemes)
+    public static List<clsRToken>? GetLstTokens(List<string> lstLexemes)
     {
 
         if (lstLexemes is null || lstLexemes.Count == 0)
@@ -202,7 +206,7 @@ public class clsRScript
         var lstRTokens = new List<clsRToken>();
         string strLexemePrev = "";
         string strLexemeCurrent = "";
-        string strLexemeNext;
+        string? strLexemeNext;
         bool bLexemePrevOnSameLine = false;
         bool bLexemeNextOnSameLine;
         bool bStatementContainsElement = false;
@@ -311,6 +315,10 @@ public class clsRScript
             }
 
             // identify the token associated with the current lexeme and add the token to the list
+            if (strLexemeCurrent == null)
+            {
+                throw new Exception("The current lexeme cannot be null.");
+            }
             clsToken = new clsRToken(strLexemePrev, strLexemeCurrent, strLexemeNext, bLexemePrevOnSameLine, bLexemeNextOnSameLine, iScriptPos);
             iScriptPos = (uint)(iScriptPos + strLexemeCurrent.Length);
 
@@ -469,8 +477,11 @@ public class clsRScript
         string strTxt = "";
         foreach (DictionaryEntry entry in dctRStatements)
         {
+            if (entry.Value is null)
+                throw new Exception("The dictionary entry value cannot be null.");
+
             clsRStatement rStatement = (clsRStatement)entry.Value;
-            strTxt = Conversions.ToString(strTxt + Operators.ConcatenateObject(rStatement.GetAsExecutableScript(bIncludeFormatting), bIncludeFormatting ? "" : Constants.vbLf));
+            strTxt += rStatement.GetAsExecutableScript(bIncludeFormatting) + (bIncludeFormatting ? "" : Constants.vbLf);
         }
         return strTxt;
     }
