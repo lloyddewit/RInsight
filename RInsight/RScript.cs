@@ -37,7 +37,7 @@ public class RScript
     /// <summary>   
     /// The R statements in the script. The dictionary key is the start position of the statement 
     /// in the script. The dictionary value is the statement itself. </summary>
-    public OrderedDictionary dctRStatements = new OrderedDictionary();
+    public OrderedDictionary statements = new OrderedDictionary();
 
     /// <summary>   The current state of the token parsing. </summary>
     private enum typTokenState
@@ -84,9 +84,9 @@ public class RScript
         var dctAssignments = new Dictionary<string, RStatement>();
         while (iPos < lstTokens.Count)
         {
-            uint iScriptPos = lstTokens[iPos].iScriptPos;
+            uint iScriptPos = lstTokens[iPos].scriptPos;
             var clsStatement = new RStatement(lstTokens, ref iPos, dctAssignments);
-            dctRStatements.Add(iScriptPos, clsStatement);
+            statements.Add(iScriptPos, clsStatement);
 
             // if the value of an assigned element is new/updated
             if (!(clsStatement.clsAssignment == null))
@@ -329,7 +329,7 @@ public class RScript
             // The key words that allow this are: if, else, while, for and function.
             // For example:
             // if(x <= 0) y <- log(1+x) else y <- log(x)
-            if (clsToken.enuToken == RToken.typToken.RComment || clsToken.enuToken == RToken.typToken.RSpace)       // ignore comments, spaces and newlines (they don't affect key word processing)
+            if (clsToken.tokentype == RToken.typToken.RComment || clsToken.tokentype == RToken.typToken.RSpace)       // ignore comments, spaces and newlines (they don't affect key word processing)
             {
             }
             // clsToken.enuToken = clsRToken.typToken.RNewLine Then
@@ -342,9 +342,9 @@ public class RScript
                     case typTokenState.WaitingForOpenCondition:
                         {
 
-                            if (!(clsToken.enuToken == RToken.typToken.RNewLine))
+                            if (!(clsToken.tokentype == RToken.typToken.RNewLine))
                             {
-                                if (clsToken.strTxt == "(")
+                                if (clsToken.text == "(")
                                 {
                                     stkTokenState.Pop();
                                     stkTokenState.Push(typTokenState.WaitingForCloseCondition);
@@ -369,11 +369,11 @@ public class RScript
                     case typTokenState.WaitingForStartScript:
                         {
 
-                            if (!(clsToken.enuToken == RToken.typToken.RComment || clsToken.enuToken == RToken.typToken.RPresentation || clsToken.enuToken == RToken.typToken.RSpace || clsToken.enuToken == RToken.typToken.RNewLine))
+                            if (!(clsToken.tokentype == RToken.typToken.RComment || clsToken.tokentype == RToken.typToken.RPresentation || clsToken.tokentype == RToken.typToken.RSpace || clsToken.tokentype == RToken.typToken.RNewLine))
                             {
                                 stkTokenState.Pop();
                                 stkTokenState.Push(typTokenState.WaitingForEndScript);
-                                if (clsToken.strTxt == "{")
+                                if (clsToken.text == "{")
                                 {
                                     stkIsScriptEnclosedByCurlyBrackets.Push(true);  // script will terminate with '}'
                                 }
@@ -389,22 +389,22 @@ public class RScript
                     case typTokenState.WaitingForEndScript:
                         {
 
-                            if (clsToken.enuToken == RToken.typToken.RNewLine && bStatementContainsElement && stkNumOpenBrackets.Peek() == 0 && !RToken.IsOperatorUserDefined(strLexemePrev) && !(RToken.IsOperatorReserved(strLexemePrev) && !(strLexemePrev == "~")))                   // if statement contains at least one R element (i.e. not just spaces, comments, or newlines)
+                            if (clsToken.tokentype == RToken.typToken.RNewLine && bStatementContainsElement && stkNumOpenBrackets.Peek() == 0 && !RToken.IsOperatorUserDefined(strLexemePrev) && !(RToken.IsOperatorReserved(strLexemePrev) && !(strLexemePrev == "~")))                   // if statement contains at least one R element (i.e. not just spaces, comments, or newlines)
                                                                                                                                                                                                                                                                                                    // if there are no open brackets
                                                                                                                                                                                                                                                                                                    // if line doesn't end in a user-defined operator
                                                                                                                                                                                                                                                                                                    // if line doesn't end in a predefined operator
                                                                                                                                                                                                                                                                                                    // unless it's a tilda (the only operator that doesn't need a right-hand value)
                             {
-                                clsToken.enuToken = RToken.typToken.REndStatement;
+                                clsToken.tokentype = RToken.typToken.REndStatement;
                                 bStatementContainsElement = false;
                             }
 
-                            if (clsToken.enuToken == RToken.typToken.REndStatement && stkIsScriptEnclosedByCurlyBrackets.Peek() == false && string.IsNullOrEmpty(strLexemeNext))
+                            if (clsToken.tokentype == RToken.typToken.REndStatement && stkIsScriptEnclosedByCurlyBrackets.Peek() == false && string.IsNullOrEmpty(strLexemeNext))
                             {
-                                clsToken.enuToken = RToken.typToken.REndScript;
+                                clsToken.tokentype = RToken.typToken.REndScript;
                             }
 
-                            if (clsToken.enuToken == RToken.typToken.REndScript)
+                            if (clsToken.tokentype == RToken.typToken.REndScript)
                             {
                                 stkIsScriptEnclosedByCurlyBrackets.Pop();
                                 stkNumOpenBrackets.Pop();
@@ -427,7 +427,7 @@ public class RScript
             // Edge case: if the script has ended and there are no more R elements to process, 
             // then ensure that only formatting lexemes (i.e. spaces, newlines or comments) follow
             // the script's final statement.
-            if (clsToken.enuToken == RToken.typToken.REndScript && string.IsNullOrEmpty(strLexemeNext))
+            if (clsToken.tokentype == RToken.typToken.REndScript && string.IsNullOrEmpty(strLexemeNext))
             {
 
                 for (int iNextPos = iPos + 1, loopTo2 = lstLexemes.Count - 1; iNextPos <= loopTo2; iNextPos++)
@@ -438,7 +438,7 @@ public class RScript
                     clsToken = new RToken("", strLexemeCurrent, "", false, false, iScriptPos);
                     iScriptPos = (uint)(iScriptPos + strLexemeCurrent.Length);
 
-                    switch (clsToken.enuToken)
+                    switch (clsToken.tokentype)
                     {
                         case RToken.typToken.RSpace:
                         case RToken.typToken.RNewLine:
@@ -475,7 +475,7 @@ public class RScript
     public string GetAsExecutableScript(bool bIncludeFormatting = true)
     {
         string strTxt = "";
-        foreach (DictionaryEntry entry in dctRStatements)
+        foreach (DictionaryEntry entry in statements)
         {
             if (entry.Value is null)
                 throw new Exception("The dictionary entry value cannot be null.");

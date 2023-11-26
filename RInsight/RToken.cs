@@ -32,16 +32,16 @@ public class RToken
     }
 
     /// <summary>   The lexeme associated with the token. </summary>
-    public string strTxt = "";
+    public string text = "";
 
     /// <summary>   The position of the lexeme in the script from which the lexeme was extracted. </summary>
-    public uint iScriptPos;
+    public uint scriptPos;
 
     /// <summary>   The token type (function name, key word, comment etc.).  </summary>
-    public typToken enuToken;
+    public typToken tokentype;
 
     /// <summary>   The token's children. </summary>
-    public List<RToken> lstTokens = new List<RToken>();
+    public List<RToken> childTokens = new List<RToken>();
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
@@ -58,8 +58,8 @@ public class RToken
     /// --------------------------------------------------------------------------------------------
     public RToken(string strTxtNew, typToken enuTokenNew)
     {
-        strTxt = strTxtNew;
-        enuToken = enuTokenNew;
+        text = strTxtNew;
+        tokentype = enuTokenNew;
     }
 
 
@@ -91,79 +91,79 @@ public class RToken
             return;
         }
 
-        strTxt = strLexemeCurrent;
-        iScriptPos = iScriptPosNew;
+        text = strLexemeCurrent;
+        scriptPos = iScriptPosNew;
 
         if (IsKeyWord(strLexemeCurrent))                   // reserved key word (e.g. if, else etc.)
         {
-            enuToken = typToken.RKeyWord;
+            tokentype = typToken.RKeyWord;
         }
         else if (IsSyntacticName(strLexemeCurrent))
         {
             if (strLexemeNext == "(" && bLexemeNextOnSameLine)
             {
-                enuToken = typToken.RFunctionName;   // function name
+                tokentype = typToken.RFunctionName;   // function name
             }
             else
             {
-                enuToken = typToken.RSyntacticName;
+                tokentype = typToken.RSyntacticName;
             }  // syntactic name
         }
         else if (IsComment(strLexemeCurrent))               // comment (starts with '#*')
         {
-            enuToken = typToken.RComment;
+            tokentype = typToken.RComment;
         }
         else if (IsConstantString(strLexemeCurrent))        // string literal (starts with single or double quote)
         {
-            enuToken = typToken.RConstantString;
+            tokentype = typToken.RConstantString;
         }
         else if (IsNewLine(strLexemeCurrent))               // new line (e.g. '\n')
         {
-            enuToken = typToken.RNewLine;
+            tokentype = typToken.RNewLine;
         }
         else if (strLexemeCurrent == ";")                    // end statement
         {
-            enuToken = typToken.REndStatement;
+            tokentype = typToken.REndStatement;
         }
         else if (strLexemeCurrent == ",")                    // parameter separator
         {
-            enuToken = typToken.RSeparator;
+            tokentype = typToken.RSeparator;
         }
         else if (IsSequenceOfSpaces(strLexemeCurrent))      // sequence of spaces (needs to be after separator check, 
         {
-            enuToken = typToken.RSpace;              // else linefeed is recognised as space)
+            tokentype = typToken.RSpace;              // else linefeed is recognised as space)
         }
         else if (IsBracket(strLexemeCurrent))               // bracket (e.g. '{')
         {
             if (strLexemeCurrent == "}")
             {
-                enuToken = typToken.REndScript;
+                tokentype = typToken.REndScript;
             }
             else
             {
-                enuToken = typToken.RBracket;
+                tokentype = typToken.RBracket;
             }
         }
         else if (IsOperatorBrackets(strLexemeCurrent))      // bracket operator (e.g. '[')
         {
-            enuToken = typToken.ROperatorBracket;
+            tokentype = typToken.ROperatorBracket;
         }
         else if (IsOperatorUnary(strLexemeCurrent) && (string.IsNullOrEmpty(strLexemePrev) || !IsBinaryOperatorParameter(strLexemePrev) || !bLexemePrevOnSameLine))      // unary right operator (e.g. '!x')
         {
-            enuToken = typToken.ROperatorUnaryRight;
+            tokentype = typToken.ROperatorUnaryRight;
         }
         else if (strLexemeCurrent == "~" && (string.IsNullOrEmpty(strLexemeNext) || !bLexemeNextOnSameLine || !(Regex.IsMatch(strLexemeNext, @"^[a-zA-Z0-9_\.(\+\-\!~]") || IsBinaryOperatorParameter(strLexemeNext))))                 // unary left operator (e.g. x~)
 
         {
-            enuToken = typToken.ROperatorUnaryLeft;
+            tokentype = typToken.ROperatorUnaryLeft;
         }
         else if (IsOperatorReserved(strLexemeCurrent) || Regex.IsMatch(strLexemeCurrent, "^%.*%$"))    // binary operator (e.g. '+')
         {
-            enuToken = typToken.ROperatorBinary;
+            tokentype = typToken.ROperatorBinary;
         }
         else
         {
-            enuToken = typToken.RInvalid;
+            tokentype = typToken.RInvalid;
         }
 
     }
@@ -177,15 +177,15 @@ public class RToken
     /// --------------------------------------------------------------------------------------------
     public RToken CloneMe()
     {
-        var clsToken = new RToken(strTxt, enuToken);
+        var clsToken = new RToken(text, tokentype);
 
-        foreach (RToken clsTokenChild in lstTokens)
+        foreach (RToken clsTokenChild in childTokens)
         {
             if (clsTokenChild == null)
             {
                 throw new Exception("Token has illegal empty child.");
             }
-            clsToken.lstTokens.Add(clsTokenChild.CloneMe());
+            clsToken.childTokens.Add(clsTokenChild.CloneMe());
         }
 
         return clsToken;
