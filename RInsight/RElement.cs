@@ -33,7 +33,7 @@ public class RElement
     {
         strTxt = clsToken.text;
         bBracketed = bBracketedNew;
-        strPrefix = strPackagePrefix + (clsToken.childTokens.Count > 0 && clsToken.childTokens[0].tokentype == RToken.typToken.RPresentation ? clsToken.childTokens[0].text : "");
+        strPrefix = strPackagePrefix + (clsToken.childTokens.Count > 0 && clsToken.childTokens[0].tokentype == RToken.TokenTypes.RPresentation ? clsToken.childTokens[0].text : "");
 
     }
 

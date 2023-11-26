@@ -3,7 +3,7 @@
   <Class Name="RInsight.RToken">
     <Position X="12.75" Y="0.5" Width="1.5" />
     <NestedTypes>
-      <Enum Name="RInsight.RToken.typToken" Collapsed="true">
+      <Enum Name="RInsight.RToken.TokenTypes" Collapsed="true">
         <TypeIdentifier>
           <NewMemberFileName>RToken.cs</NewMemberFileName>
         </TypeIdentifier>
