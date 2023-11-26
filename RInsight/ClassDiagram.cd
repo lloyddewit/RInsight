@@ -1,0 +1,88 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<ClassDiagram MajorVersion="1" MinorVersion="1">
+  <Class Name="RInsight.RToken">
+    <Position X="12.75" Y="0.5" Width="1.5" />
+    <NestedTypes>
+      <Enum Name="RInsight.RToken.typToken" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>clsRToken.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>QAiAAAAKAwAAAAAAIAAAIAAECAAAAAAJIAAAAACADBA=</HashCode>
+      <FileName>clsRToken.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="RInsight.RScript">
+    <Position X="0.5" Y="0.5" Width="1.5" />
+    <NestedTypes>
+      <Enum Name="RInsight.RScript.typTokenState" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>clsRScript.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>BAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAIAAAAAAAAAAA=</HashCode>
+      <FileName>clsRScript.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="RInsight.RStatement">
+    <Position X="0.5" Y="3" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ABARBAIBEAAMQAAAAAAAA6QwAAAAGgKEAAACEAACAjA=</HashCode>
+      <FileName>clsRStatement.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="RInsight.RElement" Collapsed="true">
+    <Position X="2.75" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAgAAAAAAgAAAAQAAAAAAAAAAAAAAIAAAAAAAAAAAAA=</HashCode>
+      <FileName>clsRElement.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="RInsight.RElementAssignable">
+    <Position X="4.75" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>clsRElementAssignable.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="RInsight.RElementFunction">
+    <Position X="8.75" Y="4.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ=</HashCode>
+      <FileName>clsRElementFunction.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="RInsight.RElementKeyWord">
+    <Position X="2.75" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>BAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>clsRElementKeyWord.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="RInsight.RElementOperator" Collapsed="true">
+    <Position X="4.75" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAoAAAAAAAAAACAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ=</HashCode>
+      <FileName>clsRElementOperator.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="RInsight.RElementProperty">
+    <Position X="6.5" Y="3.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>gAAAAAgAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAA=</HashCode>
+      <FileName>clsRElementProperty.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="RInsight.RParameter">
+    <Position X="10.5" Y="3.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAgAAAAAAAQCAAQCAAAAABAAAAAAAAAAAAAAAAAAACA=</HashCode>
+      <FileName>clsRParameter.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Font Name="Segoe UI" Size="9" />
+</ClassDiagram>

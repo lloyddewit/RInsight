@@ -2,13 +2,13 @@
 
 namespace RInsight;
 
-public class clsRElementKeyWord : clsRElement
+public class RElementKeyWord : RElement
 {
 
-    public List<clsRParameter> lstRParameters = new List<clsRParameter>();
-    public clsRScript? clsScript;
+    public List<RParameter> lstRParameters = new List<RParameter>();
+    public RScript? clsScript;
 
-    public clsRElementKeyWord(clsRToken clsToken, bool bBracketedNew = false) : base(clsToken, bBracketedNew)
+    public RElementKeyWord(RToken clsToken, bool bBracketedNew = false) : base(clsToken, bBracketedNew)
     {
     }
 

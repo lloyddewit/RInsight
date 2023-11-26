@@ -6,7 +6,7 @@ using Microsoft.VisualBasic;
 
 namespace RInsight;
 
-public class clsRToken
+public class RToken
 {
     /// <summary>   The different types of R element (function name, key word, comment etc.) 
     ///             that the token may represent. </summary>
@@ -41,7 +41,7 @@ public class clsRToken
     public typToken enuToken;
 
     /// <summary>   The token's children. </summary>
-    public List<clsRToken> lstTokens = new List<clsRToken>();
+    public List<RToken> lstTokens = new List<RToken>();
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
@@ -56,7 +56,7 @@ public class clsRToken
     /// <param name="strTxtNew">    The lexeme to associate with the token. </param>
     /// <param name="enuTokenNew">  The token type (function name, key word, comment etc.). </param>
     /// --------------------------------------------------------------------------------------------
-    public clsRToken(string strTxtNew, typToken enuTokenNew)
+    public RToken(string strTxtNew, typToken enuTokenNew)
     {
         strTxt = strTxtNew;
         enuToken = enuTokenNew;
@@ -84,7 +84,7 @@ public class clsRToken
     ///                                      same line as <paramref name="strLexemeCurrent"/>. </param>
     /// 
     /// --------------------------------------------------------------------------------------------
-    public clsRToken(string? strLexemePrev, string strLexemeCurrent, string? strLexemeNext, bool bLexemePrevOnSameLine, bool bLexemeNextOnSameLine, uint iScriptPosNew)
+    public RToken(string? strLexemePrev, string strLexemeCurrent, string? strLexemeNext, bool bLexemePrevOnSameLine, bool bLexemeNextOnSameLine, uint iScriptPosNew)
     {
         if (string.IsNullOrEmpty(strLexemeCurrent))
         {
@@ -175,11 +175,11 @@ public class clsRToken
     /// 
     /// <returns>   A clone of this object. </returns>
     /// --------------------------------------------------------------------------------------------
-    public clsRToken CloneMe()
+    public RToken CloneMe()
     {
-        var clsToken = new clsRToken(strTxt, enuToken);
+        var clsToken = new RToken(strTxt, enuToken);
 
-        foreach (clsRToken clsTokenChild in lstTokens)
+        foreach (RToken clsTokenChild in lstTokens)
         {
             if (clsTokenChild == null)
             {

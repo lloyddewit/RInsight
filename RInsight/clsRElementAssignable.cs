@@ -1,7 +1,7 @@
 ﻿
 namespace RInsight;
 
-public class clsRElementAssignable : clsRElement
+public class RElementAssignable : RElement
 {
 
     /// <summary>   
@@ -9,9 +9,9 @@ public class clsRElementAssignable : clsRElement
 /// <code>
 /// a=1<para>
 /// b=a</para></code></summary>
-    public clsRStatement? clsStatement;
+    public RStatement? clsStatement;
 
-    public clsRElementAssignable(clsRToken clsToken, clsRStatement? clsStatementNew = null, bool bBracketedNew = false, string strPackagePrefix = "") : base(clsToken, bBracketedNew, strPackagePrefix)
+    public RElementAssignable(RToken clsToken, RStatement? clsStatementNew = null, bool bBracketedNew = false, string strPackagePrefix = "") : base(clsToken, bBracketedNew, strPackagePrefix)
     {
         clsStatement = clsStatementNew;
     }

@@ -31,7 +31,7 @@ namespace RInsight;
 // 
 
     /// <summary>   TODO Add class summary. </summary>
-public class clsRScript
+public class RScript
 {
 
     /// <summary>   
@@ -66,7 +66,7 @@ public class clsRScript
     ///                         https://cran.r-project.org/doc/manuals/r-release/R-lang.html 
     ///                         (referenced 01 Feb 2021).</param>
     /// --------------------------------------------------------------------------------------------
-    public clsRScript(string strInput)
+    public RScript(string strInput)
     {
         if (string.IsNullOrEmpty(strInput))
         {
@@ -81,11 +81,11 @@ public class clsRScript
         }
 
         int iPos = 0;
-        var dctAssignments = new Dictionary<string, clsRStatement>();
+        var dctAssignments = new Dictionary<string, RStatement>();
         while (iPos < lstTokens.Count)
         {
             uint iScriptPos = lstTokens[iPos].iScriptPos;
-            var clsStatement = new clsRStatement(lstTokens, ref iPos, dctAssignments);
+            var clsStatement = new RStatement(lstTokens, ref iPos, dctAssignments);
             dctRStatements.Add(iScriptPos, clsStatement);
 
             // if the value of an assigned element is new/updated
@@ -137,7 +137,7 @@ public class clsRScript
             // we keep adding characters to the lexeme, one at a time, until we reach a character that 
             // would make the lexeme invalid.
             // Second part of condition is edge case for nested operator brackets (see note below).
-            if (clsRToken.IsValidLexeme(lexeme + lexemeChar) && 
+            if (RToken.IsValidLexeme(lexeme + lexemeChar) && 
                 !(lexeme + lexemeChar == "]]" && 
                   (bracketStack.Count < 1 || bracketStack.Peek()))) 
             {
@@ -195,7 +195,7 @@ public class clsRScript
     /// 
     /// <returns>   <paramref name="lstLexemes"/> as a list of tokens. </returns>
     /// --------------------------------------------------------------------------------------------
-    public static List<clsRToken>? GetLstTokens(List<string> lstLexemes)
+    public static List<RToken>? GetLstTokens(List<string> lstLexemes)
     {
 
         if (lstLexemes is null || lstLexemes.Count == 0)
@@ -203,14 +203,14 @@ public class clsRScript
             return null;
         }
 
-        var lstRTokens = new List<clsRToken>();
+        var lstRTokens = new List<RToken>();
         string strLexemePrev = "";
         string strLexemeCurrent = "";
         string? strLexemeNext;
         bool bLexemePrevOnSameLine = false;
         bool bLexemeNextOnSameLine;
         bool bStatementContainsElement = false;
-        clsRToken clsToken;
+        RToken clsToken;
 
         var stkNumOpenBrackets = new Stack<int>();
         stkNumOpenBrackets.Push(0);
@@ -240,25 +240,25 @@ public class clsRScript
             }
 
             // store previous non-space lexeme
-            if (clsRToken.IsElement(strLexemeCurrent))
+            if (RToken.IsElement(strLexemeCurrent))
             {
                 strLexemePrev = strLexemeCurrent;
                 bLexemePrevOnSameLine = true;
             }
-            else if (clsRToken.IsNewLine(strLexemeCurrent))
+            else if (RToken.IsNewLine(strLexemeCurrent))
             {
                 bLexemePrevOnSameLine = false;
             }
 
             strLexemeCurrent = lstLexemes[iPos];
-            bStatementContainsElement = bStatementContainsElement ? bStatementContainsElement : clsRToken.IsElement(strLexemeCurrent);
+            bStatementContainsElement = bStatementContainsElement ? bStatementContainsElement : RToken.IsElement(strLexemeCurrent);
 
             // find next lexeme that represents an R element
             strLexemeNext = null;
             bLexemeNextOnSameLine = true;
             for (int iNextPos = iPos + 1, loopTo1 = lstLexemes.Count - 1; iNextPos <= loopTo1; iNextPos++)
             {
-                if (clsRToken.IsElement(lstLexemes[iNextPos]))
+                if (RToken.IsElement(lstLexemes[iNextPos]))
                 {
                     strLexemeNext = lstLexemes[iNextPos];
                     break;
@@ -319,7 +319,7 @@ public class clsRScript
             {
                 throw new Exception("The current lexeme cannot be null.");
             }
-            clsToken = new clsRToken(strLexemePrev, strLexemeCurrent, strLexemeNext, bLexemePrevOnSameLine, bLexemeNextOnSameLine, iScriptPos);
+            clsToken = new RToken(strLexemePrev, strLexemeCurrent, strLexemeNext, bLexemePrevOnSameLine, bLexemeNextOnSameLine, iScriptPos);
             iScriptPos = (uint)(iScriptPos + strLexemeCurrent.Length);
 
             // Process key words
@@ -329,7 +329,7 @@ public class clsRScript
             // The key words that allow this are: if, else, while, for and function.
             // For example:
             // if(x <= 0) y <- log(1+x) else y <- log(x)
-            if (clsToken.enuToken == clsRToken.typToken.RComment || clsToken.enuToken == clsRToken.typToken.RSpace)       // ignore comments, spaces and newlines (they don't affect key word processing)
+            if (clsToken.enuToken == RToken.typToken.RComment || clsToken.enuToken == RToken.typToken.RSpace)       // ignore comments, spaces and newlines (they don't affect key word processing)
             {
             }
             // clsToken.enuToken = clsRToken.typToken.RNewLine Then
@@ -342,7 +342,7 @@ public class clsRScript
                     case typTokenState.WaitingForOpenCondition:
                         {
 
-                            if (!(clsToken.enuToken == clsRToken.typToken.RNewLine))
+                            if (!(clsToken.enuToken == RToken.typToken.RNewLine))
                             {
                                 if (clsToken.strTxt == "(")
                                 {
@@ -369,7 +369,7 @@ public class clsRScript
                     case typTokenState.WaitingForStartScript:
                         {
 
-                            if (!(clsToken.enuToken == clsRToken.typToken.RComment || clsToken.enuToken == clsRToken.typToken.RPresentation || clsToken.enuToken == clsRToken.typToken.RSpace || clsToken.enuToken == clsRToken.typToken.RNewLine))
+                            if (!(clsToken.enuToken == RToken.typToken.RComment || clsToken.enuToken == RToken.typToken.RPresentation || clsToken.enuToken == RToken.typToken.RSpace || clsToken.enuToken == RToken.typToken.RNewLine))
                             {
                                 stkTokenState.Pop();
                                 stkTokenState.Push(typTokenState.WaitingForEndScript);
@@ -389,22 +389,22 @@ public class clsRScript
                     case typTokenState.WaitingForEndScript:
                         {
 
-                            if (clsToken.enuToken == clsRToken.typToken.RNewLine && bStatementContainsElement && stkNumOpenBrackets.Peek() == 0 && !clsRToken.IsOperatorUserDefined(strLexemePrev) && !(clsRToken.IsOperatorReserved(strLexemePrev) && !(strLexemePrev == "~")))                   // if statement contains at least one R element (i.e. not just spaces, comments, or newlines)
+                            if (clsToken.enuToken == RToken.typToken.RNewLine && bStatementContainsElement && stkNumOpenBrackets.Peek() == 0 && !RToken.IsOperatorUserDefined(strLexemePrev) && !(RToken.IsOperatorReserved(strLexemePrev) && !(strLexemePrev == "~")))                   // if statement contains at least one R element (i.e. not just spaces, comments, or newlines)
                                                                                                                                                                                                                                                                                                    // if there are no open brackets
                                                                                                                                                                                                                                                                                                    // if line doesn't end in a user-defined operator
                                                                                                                                                                                                                                                                                                    // if line doesn't end in a predefined operator
                                                                                                                                                                                                                                                                                                    // unless it's a tilda (the only operator that doesn't need a right-hand value)
                             {
-                                clsToken.enuToken = clsRToken.typToken.REndStatement;
+                                clsToken.enuToken = RToken.typToken.REndStatement;
                                 bStatementContainsElement = false;
                             }
 
-                            if (clsToken.enuToken == clsRToken.typToken.REndStatement && stkIsScriptEnclosedByCurlyBrackets.Peek() == false && string.IsNullOrEmpty(strLexemeNext))
+                            if (clsToken.enuToken == RToken.typToken.REndStatement && stkIsScriptEnclosedByCurlyBrackets.Peek() == false && string.IsNullOrEmpty(strLexemeNext))
                             {
-                                clsToken.enuToken = clsRToken.typToken.REndScript;
+                                clsToken.enuToken = RToken.typToken.REndScript;
                             }
 
-                            if (clsToken.enuToken == clsRToken.typToken.REndScript)
+                            if (clsToken.enuToken == RToken.typToken.REndScript)
                             {
                                 stkIsScriptEnclosedByCurlyBrackets.Pop();
                                 stkNumOpenBrackets.Pop();
@@ -427,7 +427,7 @@ public class clsRScript
             // Edge case: if the script has ended and there are no more R elements to process, 
             // then ensure that only formatting lexemes (i.e. spaces, newlines or comments) follow
             // the script's final statement.
-            if (clsToken.enuToken == clsRToken.typToken.REndScript && string.IsNullOrEmpty(strLexemeNext))
+            if (clsToken.enuToken == RToken.typToken.REndScript && string.IsNullOrEmpty(strLexemeNext))
             {
 
                 for (int iNextPos = iPos + 1, loopTo2 = lstLexemes.Count - 1; iNextPos <= loopTo2; iNextPos++)
@@ -435,14 +435,14 @@ public class clsRScript
 
                     strLexemeCurrent = lstLexemes[iNextPos];
 
-                    clsToken = new clsRToken("", strLexemeCurrent, "", false, false, iScriptPos);
+                    clsToken = new RToken("", strLexemeCurrent, "", false, false, iScriptPos);
                     iScriptPos = (uint)(iScriptPos + strLexemeCurrent.Length);
 
                     switch (clsToken.enuToken)
                     {
-                        case clsRToken.typToken.RSpace:
-                        case clsRToken.typToken.RNewLine:
-                        case clsRToken.typToken.RComment:
+                        case RToken.typToken.RSpace:
+                        case RToken.typToken.RNewLine:
+                        case RToken.typToken.RComment:
                             {
                                 break;
                             }
@@ -480,7 +480,7 @@ public class clsRScript
             if (entry.Value is null)
                 throw new Exception("The dictionary entry value cannot be null.");
 
-            clsRStatement rStatement = (clsRStatement)entry.Value;
+            RStatement rStatement = (RStatement)entry.Value;
             strTxt += rStatement.GetAsExecutableScript(bIncludeFormatting) + (bIncludeFormatting ? "" : Constants.vbLf);
         }
         return strTxt;

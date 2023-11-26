@@ -2,11 +2,11 @@
 
 namespace RInsight;
 
-public class clsRParameter
+public class RParameter
 {
     public string? strArgName; // TODO spaces around '=' as option?
-    public clsRElement? clsArgValue;
-    public clsRElement? clsArgValueDefault;
+    public RElement? clsArgValue;
+    public RElement? clsArgValueDefault;
     public int iArgPos;
     public int iArgPosDefinition;
     public string strPrefix = "";
