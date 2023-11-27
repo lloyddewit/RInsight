@@ -20,7 +20,7 @@ public class RElementProperty : RElementAssignable
         var clsTokenNew = clsToken.CloneMe();
 
         // Edge case: if the object has a package name or an object list, and formatting information
-        if ((!string.IsNullOrEmpty(strPackageNameNew) || !(lstObjectsNew == null) && lstObjectsNew.Count > 0) && !(clsToken.childTokens == null) && clsToken.childTokens.Count > 0 && clsToken.childTokens[0].tokentype == RToken.TokenTypes.RPresentation)
+        if ((!string.IsNullOrEmpty(strPackageNameNew) || !(lstObjectsNew == null) && lstObjectsNew.Count > 0) && !(clsToken.childTokens == null) && clsToken.childTokens.Count > 0 && clsToken.childTokens[0].tokentype == RToken.TokenType.RPresentation)
         {
             // remove any formatting information associated with the main element.
             // This is needed to pass test cases such as:

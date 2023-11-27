@@ -31,8 +31,7 @@ namespace RInsight;
 // 
 
     /// <summary>   TODO Add class summary. </summary>
-public class RScript
-{
+public class RScript {
 
     /// <summary>   
     /// The R statements in the script. The dictionary key is the start position of the statement 
@@ -40,8 +39,7 @@ public class RScript
     public OrderedDictionary statements = new OrderedDictionary();
 
     /// <summary>   The current state of the token parsing. </summary>
-    private enum typTokenState
-    {
+    private enum typTokenState {
         WaitingForOpenCondition,
         WaitingForCloseCondition,
         WaitingForStartScript,
@@ -66,42 +64,33 @@ public class RScript
     ///                         https://cran.r-project.org/doc/manuals/r-release/R-lang.html 
     ///                         (referenced 01 Feb 2021).</param>
     /// --------------------------------------------------------------------------------------------
-    public RScript(string strInput)
-    {
-        if (string.IsNullOrEmpty(strInput))
-        {
+    public RScript(string strInput) {
+        if (string.IsNullOrEmpty(strInput)) {
             return;
         }
 
         var lstLexemes = GetLstLexemes(strInput);
         var lstTokens = GetLstTokens(lstLexemes);
-        if (lstTokens is null)
-        {
+        if (lstTokens is null) {
             return;
         }
 
         int iPos = 0;
         var dctAssignments = new Dictionary<string, RStatement>();
-        while (iPos < lstTokens.Count)
-        {
+        while (iPos < lstTokens.Count) {
             uint iScriptPos = lstTokens[iPos].scriptPos;
             var clsStatement = new RStatement(lstTokens, ref iPos, dctAssignments);
             statements.Add(iScriptPos, clsStatement);
 
             // if the value of an assigned element is new/updated
-            if (!(clsStatement.clsAssignment == null))
-            {
+            if (!(clsStatement.clsAssignment == null)) {
                 // store the updated/new definition in the dictionary
-                if (dctAssignments.ContainsKey(clsStatement.clsAssignment.strTxt))
-                {
+                if (dctAssignments.ContainsKey(clsStatement.clsAssignment.strTxt)) {
                     dctAssignments[clsStatement.clsAssignment.strTxt] = clsStatement;
-                }
-                else
-                {
+                } else {
                     dctAssignments.Add(clsStatement.clsAssignment.strTxt, clsStatement);
                 }
             }
-
         }
     }
 
@@ -121,26 +110,22 @@ public class RScript
     /// 
     /// <returns>   <paramref name="script"/> as a list of its constituent lexemes. </returns>
     /// --------------------------------------------------------------------------------------------
-    public static List<string> GetLstLexemes(string script)
-    {
+    public static List<string> GetLstLexemes(string script) {
         var lexemes = new List<string>();
-        if (script.Length == 0)
-        {
+        if (script.Length == 0) {
             return lexemes;
         }
         
         string lexeme = "";
         var bracketStack = new Stack<bool>();
 
-        foreach (char lexemeChar in script)
-        {
+        foreach (char lexemeChar in script) {
             // we keep adding characters to the lexeme, one at a time, until we reach a character that 
             // would make the lexeme invalid.
             // Second part of condition is edge case for nested operator brackets (see note below).
             if (RToken.IsValidLexeme(lexeme + lexemeChar) && 
                 !(lexeme + lexemeChar == "]]" && 
-                  (bracketStack.Count < 1 || bracketStack.Peek()))) 
-            {
+                  (bracketStack.Count < 1 || bracketStack.Peek())))  {
                 lexeme += lexemeChar;
                 continue;
             }
@@ -150,23 +135,18 @@ public class RScript
             // of '6' is a single ']' bracket and is not part of a double ']]' bracket.
             // To achieve this, we push each open bracket to a stack so that we know 
             // which type of closing bracket is expected for each open bracket.
-            switch (lexeme)
-            {
-                case "[":
-                    {
+            switch (lexeme) {
+                case "[": {
                         bracketStack.Push(true);
                         break;
                     }
-                case "[[":
-                    {
+                case "[[": {
                         bracketStack.Push(false);
                         break;
                     }
                 case "]":
-                case "]]":
-                    {
-                        if (bracketStack.Count < 1)
-                        {
+                case "]]": {
+                        if (bracketStack.Count < 1) {
                             throw new Exception("Closing bracket detected ('" + lexeme + "') with no corresponding open bracket.");
                         }
                         bracketStack.Pop();
@@ -195,11 +175,9 @@ public class RScript
     /// 
     /// <returns>   <paramref name="lstLexemes"/> as a list of tokens. </returns>
     /// --------------------------------------------------------------------------------------------
-    public static List<RToken>? GetLstTokens(List<string> lstLexemes)
-    {
+    public static List<RToken>? GetLstTokens(List<string> lstLexemes) {
 
-        if (lstLexemes is null || lstLexemes.Count == 0)
-        {
+        if (lstLexemes is null || lstLexemes.Count == 0) {
             return null;
         }
 
@@ -223,30 +201,24 @@ public class RScript
 
         uint iScriptPos = 0U;
 
-        for (int iPos = 0, loopTo = lstLexemes.Count - 1; iPos <= loopTo; iPos++)
-        {
+        for (int iPos = 0, loopTo = lstLexemes.Count - 1; iPos <= loopTo; iPos++) {
 
-            if (stkNumOpenBrackets.Count < 1)
-            {
+            if (stkNumOpenBrackets.Count < 1) {
                 throw new Exception("The stack storing the number of open brackets must have at least one value.");
             }
-            else if (stkIsScriptEnclosedByCurlyBrackets.Count < 1)
-            {
+            else if (stkIsScriptEnclosedByCurlyBrackets.Count < 1) {
                 throw new Exception("The stack storing the number of open curly brackets must have at least one value.");
             }
-            else if (stkTokenState.Count < 1)
-            {
+            else if (stkTokenState.Count < 1) {
                 throw new Exception("The stack storing the current state of the token parsing must have at least one value.");
             }
 
             // store previous non-space lexeme
-            if (RToken.IsElement(strLexemeCurrent))
-            {
+            if (RToken.IsElement(strLexemeCurrent)) {
                 strLexemePrev = strLexemeCurrent;
                 bLexemePrevOnSameLine = true;
             }
-            else if (RToken.IsNewLine(strLexemeCurrent))
-            {
+            else if (RToken.IsNewLine(strLexemeCurrent)) {
                 bLexemePrevOnSameLine = false;
             }
 
@@ -256,19 +228,15 @@ public class RScript
             // find next lexeme that represents an R element
             strLexemeNext = "";
             bLexemeNextOnSameLine = true;
-            for (int iNextPos = iPos + 1, loopTo1 = lstLexemes.Count - 1; iNextPos <= loopTo1; iNextPos++)
-            {
-                if (RToken.IsElement(lstLexemes[iNextPos]))
-                {
+            for (int iNextPos = iPos + 1, loopTo1 = lstLexemes.Count - 1; iNextPos <= loopTo1; iNextPos++) {
+                if (RToken.IsElement(lstLexemes[iNextPos])) {
                     strLexemeNext = lstLexemes[iNextPos];
                     break;
                 }
-                switch (lstLexemes[iNextPos] ?? "")
-                {
+                switch (lstLexemes[iNextPos] ?? "") {
                     case Constants.vbLf:
                     case Constants.vbCr:
-                    case var @case when @case == Constants.vbCr:
-                        {
+                    case var @case when @case == Constants.vbCr: {
                             bLexemeNextOnSameLine = false;
                             break;
                         }
@@ -280,34 +248,29 @@ public class RScript
             // or is just for presentation.
             // The current sequence of tokens is considered a complete valid R statement if it 
             // has no open brackets and it does not end in an operator.
-            switch (strLexemeCurrent ?? "")
-            {
+            switch (strLexemeCurrent ?? "") {
                 case "(":
                 case "[":
-                case "[[":
-                    {
+                case "[[": {
                         stkNumOpenBrackets.Push(stkNumOpenBrackets.Pop() + 1);
                         break;
                     }
                 case ")":
                 case "]":
-                case "]]":
-                    {
+                case "]]": {
                         stkNumOpenBrackets.Push(stkNumOpenBrackets.Pop() - 1);
                         break;
                     }
                 case "if":
                 case "while":
                 case "for":
-                case "function":
-                    {
+                case "function": {
                         stkTokenState.Push(typTokenState.WaitingForOpenCondition);
                         stkNumOpenBrackets.Push(0);
                         break;
                     }
                 case "else":
-                case "repeat":
-                    {
+                case "repeat": {
                         stkTokenState.Push(typTokenState.WaitingForCloseCondition); // 'else' and 'repeat' keywords have no condition (e.g. 'if (x==1) y<-0 else y<-1'
                         stkNumOpenBrackets.Push(0);                                 // after the keyword is processed, the state will automatically change to 'WaitingForEndScript'
                         break;
@@ -315,8 +278,7 @@ public class RScript
             }
 
             // identify the token associated with the current lexeme and add the token to the list
-            if (strLexemeCurrent == null)
-            {
+            if (strLexemeCurrent == null) {
                 throw new Exception("The current lexeme cannot be null.");
             }
             clsToken = new RToken(strLexemePrev, strLexemeCurrent, strLexemeNext, bLexemePrevOnSameLine, bLexemeNextOnSameLine, iScriptPos);
@@ -329,21 +291,15 @@ public class RScript
             // The key words that allow this are: if, else, while, for and function.
             // For example:
             // if(x <= 0) y <- log(1+x) else y <- log(x)
-            if (clsToken.tokentype == RToken.TokenTypes.RComment || clsToken.tokentype == RToken.TokenTypes.RSpace)       // ignore comments, spaces and newlines (they don't affect key word processing)
-            {
-            }
+            if (clsToken.tokentype == RToken.TokenType.RComment || clsToken.tokentype == RToken.TokenType.RSpace) {       // ignore comments, spaces and newlines (they don't affect key word processing)
             // clsToken.enuToken = clsRToken.typToken.RNewLine Then
             // clsToken.enuToken = clsRToken.typToken.RKeyWord Then    'ignore keywords (already processed above)
             // do nothing
-            else
-            {
-                switch (stkTokenState.Peek())
-                {
-                    case typTokenState.WaitingForOpenCondition:
-                        {
+            } else {
+                switch (stkTokenState.Peek()) {
+                    case typTokenState.WaitingForOpenCondition: {
 
-                            if (!(clsToken.tokentype == RToken.TokenTypes.RNewLine))
-                            {
+                            if (!(clsToken.tokentype == RToken.TokenType.RNewLine)) {
                                 if (clsToken.text == "(")
                                 {
                                     stkTokenState.Pop();
@@ -354,11 +310,9 @@ public class RScript
                             break;
                         }
 
-                    case typTokenState.WaitingForCloseCondition:
-                        {
+                    case typTokenState.WaitingForCloseCondition: {
 
-                            if (stkNumOpenBrackets.Peek() == 0)
-                            {
+                            if (stkNumOpenBrackets.Peek() == 0) {
                                 stkTokenState.Pop();
                                 stkTokenState.Push(typTokenState.WaitingForStartScript);
                             }
@@ -366,11 +320,9 @@ public class RScript
                             break;
                         }
 
-                    case typTokenState.WaitingForStartScript:
-                        {
+                    case typTokenState.WaitingForStartScript: {
 
-                            if (!(clsToken.tokentype == RToken.TokenTypes.RComment || clsToken.tokentype == RToken.TokenTypes.RPresentation || clsToken.tokentype == RToken.TokenTypes.RSpace || clsToken.tokentype == RToken.TokenTypes.RNewLine))
-                            {
+                            if (!(clsToken.tokentype == RToken.TokenType.RComment || clsToken.tokentype == RToken.TokenType.RPresentation || clsToken.tokentype == RToken.TokenType.RSpace || clsToken.tokentype == RToken.TokenType.RNewLine)) {
                                 stkTokenState.Pop();
                                 stkTokenState.Push(typTokenState.WaitingForEndScript);
                                 if (clsToken.text == "{")
@@ -386,26 +338,22 @@ public class RScript
                             break;
                         }
 
-                    case typTokenState.WaitingForEndScript:
-                        {
+                    case typTokenState.WaitingForEndScript: {
 
-                            if (clsToken.tokentype == RToken.TokenTypes.RNewLine && bStatementContainsElement && stkNumOpenBrackets.Peek() == 0 && !RToken.IsOperatorUserDefined(strLexemePrev) && !(RToken.IsOperatorReserved(strLexemePrev) && !(strLexemePrev == "~")))                   // if statement contains at least one R element (i.e. not just spaces, comments, or newlines)
+                            if (clsToken.tokentype == RToken.TokenType.RNewLine && bStatementContainsElement && stkNumOpenBrackets.Peek() == 0 && !RToken.IsOperatorUserDefined(strLexemePrev) && !(RToken.IsOperatorReserved(strLexemePrev) && !(strLexemePrev == "~"))) {                  // if statement contains at least one R element (i.e. not just spaces, comments, or newlines)
                                                                                                                                                                                                                                                                                                    // if there are no open brackets
                                                                                                                                                                                                                                                                                                    // if line doesn't end in a user-defined operator
                                                                                                                                                                                                                                                                                                    // if line doesn't end in a predefined operator
-                                                                                                                                                                                                                                                                                                   // unless it's a tilda (the only operator that doesn't need a right-hand value)
-                            {
-                                clsToken.tokentype = RToken.TokenTypes.REndStatement;
+                                                                                                                                                                                                                                                                                                   // unless it's a tilda (the only operator that doesn't need a right-hand value) {
+                                clsToken.tokentype = RToken.TokenType.REndStatement;
                                 bStatementContainsElement = false;
                             }
 
-                            if (clsToken.tokentype == RToken.TokenTypes.REndStatement && stkIsScriptEnclosedByCurlyBrackets.Peek() == false && string.IsNullOrEmpty(strLexemeNext))
-                            {
-                                clsToken.tokentype = RToken.TokenTypes.REndScript;
+                            if (clsToken.tokentype == RToken.TokenType.REndStatement && stkIsScriptEnclosedByCurlyBrackets.Peek() == false && string.IsNullOrEmpty(strLexemeNext)) {
+                                clsToken.tokentype = RToken.TokenType.REndScript;
                             }
 
-                            if (clsToken.tokentype == RToken.TokenTypes.REndScript)
-                            {
+                            if (clsToken.tokentype == RToken.TokenType.REndScript) {
                                 stkIsScriptEnclosedByCurlyBrackets.Pop();
                                 stkNumOpenBrackets.Pop();
                                 stkTokenState.Pop();
@@ -414,8 +362,7 @@ public class RScript
                             break;
                         }
 
-                    default:
-                        {
+                    default: {
                             throw new Exception("The token is in an unknown state.");
                         }
                 }
@@ -427,28 +374,23 @@ public class RScript
             // Edge case: if the script has ended and there are no more R elements to process, 
             // then ensure that only formatting lexemes (i.e. spaces, newlines or comments) follow
             // the script's final statement.
-            if (clsToken.tokentype == RToken.TokenTypes.REndScript && string.IsNullOrEmpty(strLexemeNext))
-            {
+            if (clsToken.tokentype == RToken.TokenType.REndScript && string.IsNullOrEmpty(strLexemeNext)) {
 
-                for (int iNextPos = iPos + 1, loopTo2 = lstLexemes.Count - 1; iNextPos <= loopTo2; iNextPos++)
-                {
+                for (int iNextPos = iPos + 1, loopTo2 = lstLexemes.Count - 1; iNextPos <= loopTo2; iNextPos++) {
 
                     strLexemeCurrent = lstLexemes[iNextPos];
 
                     clsToken = new RToken("", strLexemeCurrent, "", false, false, iScriptPos);
                     iScriptPos = (uint)(iScriptPos + strLexemeCurrent.Length);
 
-                    switch (clsToken.tokentype)
-                    {
-                        case RToken.TokenTypes.RSpace:
-                        case RToken.TokenTypes.RNewLine:
-                        case RToken.TokenTypes.RComment:
-                            {
+                    switch (clsToken.tokentype) {
+                        case RToken.TokenType.RSpace:
+                        case RToken.TokenType.RNewLine:
+                        case RToken.TokenType.RComment: {
                                 break;
                             }
 
-                        default:
-                            {
+                        default: {
                                 throw new Exception("Only spaces, newlines and comments are allowed after the script ends.");
                             }
                     }
@@ -472,11 +414,9 @@ public class RScript
     /// 
     /// <returns>   The current state of this object as a valid, executable R script. </returns>
     /// --------------------------------------------------------------------------------------------
-    public string GetAsExecutableScript(bool bIncludeFormatting = true)
-    {
+    public string GetAsExecutableScript(bool bIncludeFormatting = true) {
         string strTxt = "";
-        foreach (DictionaryEntry entry in statements)
-        {
+        foreach (DictionaryEntry entry in statements) {
             if (entry.Value is null)
                 throw new Exception("The dictionary entry value cannot be null.");
 

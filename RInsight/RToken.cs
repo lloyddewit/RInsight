@@ -2,13 +2,14 @@
 
 namespace RInsight;
 
-public class RToken
-{
+/// <summary>
+/// TODO
+/// </summary>
+public class RToken {
 
-  /// <summary>   The different types of R element (function name, key word, comment etc.) 
-  ///             that the token may represent. </summary>
-    public enum TokenTypes
-    {
+    /// <summary>   The different types of R element (function name, key word, comment etc.) 
+    ///             that the token may represent. </summary>
+    public enum TokenType {
         RSyntacticName,
         RFunctionName,
         RKeyWord,
@@ -35,100 +36,101 @@ public class RToken
     public string text;
 
     /// <summary>   The token type (function name, key word, comment etc.).  </summary>
-    public TokenTypes tokentype;
+    public TokenType tokentype;
 
     /// <summary>   The position of the lexeme in the script from which the lexeme was extracted. </summary>
     public uint scriptPos;
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
-    ///     Constructs a new token with lexeme <paramref name="strTxtNew"/> and token type 
-    ///     <paramref name="enuTokenNew"/>.
+    ///     Constructs a new token with lexeme <paramref name="textNew"/> and token type 
+    ///     <paramref name="tokenTypeNew"/>.
     ///     <para>
     ///     A token is a string of characters that represent a valid R element, plus meta data about
     ///     the token type (identifier, operator, keyword, bracket etc.).
     ///     </para>
     /// </summary>
     /// 
-    /// <param name="strTxtNew">    The lexeme to associate with the token. </param>
-    /// <param name="enuTokenNew">  The token type (function name, key word, comment etc.). </param>
+    /// <param name="textNew">    The lexeme to associate with the token. </param>
+    /// <param name="tokenTypeNew">  The token type (function name, key word, comment etc.). </param>
     /// --------------------------------------------------------------------------------------------
-    public RToken(string strTxtNew, TokenTypes enuTokenNew)
-    {
-        text = strTxtNew;
-        tokentype = enuTokenNew;
+    public RToken(string textNew, TokenType tokenTypeNew) {
+        text = textNew;
+        tokentype = tokenTypeNew;
     }
 
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
-    ///     Constructs a token from <paramref name="strLexemeCurrent"/>. 
+    ///     Constructs a token from <paramref name="lexemeCurrent"/>. 
     ///     <para>
     ///     A token is a string of characters that represent a valid R element, plus meta data about
     ///     the token type (identifier, operator, keyword, bracket etc.).
     ///     </para><para>
-    ///     <paramref name="strLexemePrev"/> and <paramref name="strLexemeNext"/> are needed
-    ///     to correctly identify if <paramref name="strLexemeCurrent"/> is a unary or binary
+    ///     <paramref name="lexemePrev"/> and <paramref name="lexemeNext"/> are needed
+    ///     to correctly identify if <paramref name="lexemeCurrent"/> is a unary or binary
     ///     operator.</para>
     /// </summary>
     /// 
-    /// <param name="strLexemePrev">         The non-space lexeme immediately to the left of
-    ///                                      <paramref name="strLexemeCurrent"/>. </param>
-    /// <param name="strLexemeCurrent">      The lexeme to convert to a token. </param>
-    /// <param name="strLexemeNext">         The non-space lexeme immediately to the right of
-    ///                                      <paramref name="strLexemeCurrent"/>. </param>
-    /// <param name="bLexemeNextOnSameLine"> True if <paramref name="strLexemeNext"/> is on the 
-    ///                                      same line as <paramref name="strLexemeCurrent"/>. </param>
+    /// <param name="lexemePrev">         The non-space lexeme immediately to the left of
+    ///                                      <paramref name="lexemeCurrent"/>. </param>
+    /// <param name="lexemeCurrent">      The lexeme to convert to a token. </param>
+    /// <param name="lexemeNext">         The non-space lexeme immediately to the right of
+    ///                                      <paramref name="lexemeCurrent"/>. </param>
+    /// <param name="lexemeNextOnSameLine"> True if <paramref name="lexemeNext"/> is on the 
+    ///                                      same line as <paramref name="lexemeCurrent"/>. </param>
+    /// <param name="scriptPosNew">         The position of <paramref name="lexemeCurrent"/> in
+    ///                                      the script from which the lexeme was extracted. </param>
     /// 
     /// --------------------------------------------------------------------------------------------
-    public RToken(string strLexemePrev, string strLexemeCurrent, string strLexemeNext, bool bLexemePrevOnSameLine, bool bLexemeNextOnSameLine, uint iScriptPosNew)
-    {
-        if (string.IsNullOrEmpty(strLexemeCurrent)) {
+    public RToken(string lexemePrev, string lexemeCurrent, string lexemeNext, 
+                  bool lexemePrevOnSameLine, bool lexemeNextOnSameLine, uint scriptPosNew) {
+        if (string.IsNullOrEmpty(lexemeCurrent)) {
             throw new Exception("Lexeme has no text.");
         }
 
-        text = strLexemeCurrent;
-        scriptPos = iScriptPosNew;
+        text = lexemeCurrent;
+        scriptPos = scriptPosNew;
 
-        if (IsKeyWord(strLexemeCurrent)) {
-            tokentype = TokenTypes.RKeyWord;                // reserved key word (e.g. if, else etc.)
-        } else if (IsSyntacticName(strLexemeCurrent)) {
-            if (strLexemeNext == "(" && bLexemeNextOnSameLine) {
-                tokentype = TokenTypes.RFunctionName;       // function name
+        if (IsKeyWord(lexemeCurrent)) {
+            tokentype = TokenType.RKeyWord;                // reserved key word (e.g. if, else etc.)
+        } else if (IsSyntacticName(lexemeCurrent)) {
+            if (lexemeNext == "(" && lexemeNextOnSameLine) {
+                tokentype = TokenType.RFunctionName;       // function name
             } else {
-                tokentype = TokenTypes.RSyntacticName;      // syntactic name
+                tokentype = TokenType.RSyntacticName;      // syntactic name
             }
-        } else if (IsComment(strLexemeCurrent)) {
-            tokentype = TokenTypes.RComment;             // comment (starts with '#*')
-        } else if (IsConstantString(strLexemeCurrent)) {
-            tokentype = TokenTypes.RConstantString;        // string literal (starts with single or double quote)
-        } else if (IsNewLine(strLexemeCurrent)) {
-            tokentype = TokenTypes.RNewLine;               // new line (e.g. '\n')
-        } else if (strLexemeCurrent == ";") {
-            tokentype = TokenTypes.REndStatement;                    // end statement
-        } else if (strLexemeCurrent == ",") {
-            tokentype = TokenTypes.RSeparator;                    // parameter separator
-        } else if (IsSequenceOfSpaces(strLexemeCurrent)) {     // sequence of spaces (needs to be after separator check, 
-            tokentype = TokenTypes.RSpace;              // else linefeed is recognised as space)
-        } else if (IsBracket(strLexemeCurrent)) {              // bracket (e.g. '{')
-            if (strLexemeCurrent == "}") {
-                tokentype = TokenTypes.REndScript;
+        } else if (IsComment(lexemeCurrent)) {
+            tokentype = TokenType.RComment;             // comment (starts with '#*')
+        } else if (IsConstantString(lexemeCurrent)) {
+            tokentype = TokenType.RConstantString;        // string literal (starts with single or double quote)
+        } else if (IsNewLine(lexemeCurrent)) {
+            tokentype = TokenType.RNewLine;               // new line (e.g. '\n')
+        } else if (lexemeCurrent == ";") {
+            tokentype = TokenType.REndStatement;                    // end statement
+        } else if (lexemeCurrent == ",") {
+            tokentype = TokenType.RSeparator;                    // parameter separator
+        } else if (IsSequenceOfSpaces(lexemeCurrent)) {     // sequence of spaces (needs to be after separator check, 
+            tokentype = TokenType.RSpace;              // else linefeed is recognised as space)
+        } else if (IsBracket(lexemeCurrent)) {              // bracket (e.g. '{')
+            if (lexemeCurrent == "}") {
+                tokentype = TokenType.REndScript;
             } else {
-                tokentype = TokenTypes.RBracket;
+                tokentype = TokenType.RBracket;
             }
-        } else if (IsOperatorBrackets(strLexemeCurrent)) {
-            tokentype = TokenTypes.ROperatorBracket;      // bracket operator (e.g. '[')
-        } else if (IsOperatorUnary(strLexemeCurrent) && 
-                   (string.IsNullOrEmpty(strLexemePrev) 
-                    || !IsBinaryOperatorParameter(strLexemePrev) || 
-                    !bLexemePrevOnSameLine)) {
-            tokentype = TokenTypes.ROperatorUnaryRight;      // unary right operator (e.g. '!x')
-        } else if (strLexemeCurrent == "~" && (string.IsNullOrEmpty(strLexemeNext) || !bLexemeNextOnSameLine || !(Regex.IsMatch(strLexemeNext, @"^[a-zA-Z0-9_\.(\+\-\!~]") || IsBinaryOperatorParameter(strLexemeNext)))) {
-            tokentype = TokenTypes.ROperatorUnaryLeft;                 // unary left operator (e.g. x~)
-        } else if (IsOperatorReserved(strLexemeCurrent) || Regex.IsMatch(strLexemeCurrent, "^%.*%$")) {
-            tokentype = TokenTypes.ROperatorBinary;    // binary operator (e.g. '+')
+        } else if (IsOperatorBrackets(lexemeCurrent)) {
+            tokentype = TokenType.ROperatorBracket;      // bracket operator (e.g. '[')
+        } else if (IsOperatorUnary(lexemeCurrent) && 
+                   (string.IsNullOrEmpty(lexemePrev) 
+                    || !IsBinaryOperatorParameter(lexemePrev) || 
+                    !lexemePrevOnSameLine)) {
+            tokentype = TokenType.ROperatorUnaryRight;      // unary right operator (e.g. '!x')
+        } else if (lexemeCurrent == "~" && (string.IsNullOrEmpty(lexemeNext) || !lexemeNextOnSameLine || !(Regex.IsMatch(lexemeNext, @"^[a-zA-Z0-9_\.(\+\-\!~]") || IsBinaryOperatorParameter(lexemeNext)))) {
+            tokentype = TokenType.ROperatorUnaryLeft;                 // unary left operator (e.g. x~)
+        } else if (IsOperatorReserved(lexemeCurrent) || Regex.IsMatch(lexemeCurrent, "^%.*%$")) {
+            tokentype = TokenType.ROperatorBinary;    // binary operator (e.g. '+')
         } else {
-            tokentype = TokenTypes.RInvalid;
+            tokentype = TokenType.RInvalid;
         }
     }
 
@@ -139,20 +141,17 @@ public class RToken
     /// 
     /// <returns>   A clone of this object. </returns>
     /// --------------------------------------------------------------------------------------------
-    public RToken CloneMe()
-    {
-        var clsToken = new RToken(text, tokentype);
+    public RToken CloneMe() {
+        var token = new RToken(text, tokentype);
 
-        foreach (RToken clsTokenChild in childTokens)
-        {
-            if (clsTokenChild == null)
-            {
+        foreach (RToken clsTokenChild in childTokens) {
+            if (clsTokenChild is null) {
                 throw new Exception("Token has illegal empty child.");
             }
-            clsToken.childTokens.Add(clsTokenChild.CloneMe());
+            token.childTokens.Add(clsTokenChild.CloneMe());
         }
 
-        return clsToken;
+        return token;
     }
 
     /// --------------------------------------------------------------------------------------------
@@ -164,44 +163,36 @@ public class RToken
     /// 
     /// <returns>   True if <paramref name="lexeme"/> is a valid lexeme, else false. </returns>
     /// --------------------------------------------------------------------------------------------
-    public static bool IsValidLexeme(string lexeme)
-    {
-        if (lexeme.Length == 0)
-        {
+    public static bool IsValidLexeme(string lexeme) {
+        if (lexeme.Length == 0) {
             return false;
         }
 
-        // if string constant (starts with single, double or backtick)
+        // if string constant (starts with single quote, double quote or backtick)
         // Note: String constants are the only lexemes that can contain newlines and quotes. 
         // So if we process string constants first, then it makes checks below simpler.
-        if (IsConstantString(lexeme))
-        {
+        if (IsConstantString(lexeme)) {
             // if string constant is closed and followed by another character (e.g. '"hello"\n')
             // Note: "(?<!\\)" is a Regex 'negative lookbehind'. It excludes quotes that are 
             // preceeded by a backslash.
-            if (Regex.IsMatch(lexeme, lexeme[0] + @"(.|\n)*" + @"(?<!\\)" + lexeme[0] + @"(.|\n)+"))
-            {
-                return false;
-            }
-            return true;
+            return !Regex.IsMatch(lexeme, 
+                                  lexeme[0] + @"(.|\n)*" + @"(?<!\\)" + lexeme[0] + @"(.|\n)+");
         }
 
         // if string is not a valid lexeme ...
         if (Regex.IsMatch(lexeme, @".+\n$") && 
-            !(lexeme == "\r\n" || IsConstantString(lexeme)) || // string is >1 char and ends in newline
-            Regex.IsMatch(lexeme, @".+\r$") || // string is >1 char and ends in carriage return
-            Regex.IsMatch(lexeme, "^%.*%.+"))  // string is a user-defined operator followed by another character
-        {
+                !(lexeme == "\r\n" || IsConstantString(lexeme)) ||   // >1 char and ends in newline
+                Regex.IsMatch(lexeme, @".+\r$") ||           // >1 char and ends in carriage return
+                Regex.IsMatch(lexeme, "^%.*%.+")) { // a user-defined operator followed by another character
             return false;
         }
 
         // if string is a valid lexeme ...
         if (IsSyntacticName(lexeme) || // syntactic name or reserved word
-            IsOperatorReserved(lexeme) || IsOperatorBrackets(lexeme) || 
-            lexeme == "<<" || IsNewLine(lexeme) || lexeme == "," || lexeme == ";" || 
-            IsBracket(lexeme) || IsSequenceOfSpaces(lexeme) || IsOperatorUserDefined(lexeme) || 
-            IsComment(lexeme))                    
-        {
+                IsOperatorReserved(lexeme) || IsOperatorBrackets(lexeme) || 
+                lexeme == "<<" || IsNewLine(lexeme) || lexeme == "," || lexeme == ";" || 
+                IsBracket(lexeme) || IsSequenceOfSpaces(lexeme) || IsOperatorUserDefined(lexeme) ||
+                IsComment(lexeme)) {
             return true;
         }
 
@@ -211,219 +202,190 @@ public class RToken
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="strTxt"/> is a valid parameter for a binary 
+    /// <summary>   Returns true if <paramref name="text"/> is a valid parameter for a binary 
     ///             operator, else returns false.</summary>
     /// 
-    /// <param name="strTxt">   The text to check. </param>
+    /// <param name="text">   The text to check. </param>
     /// 
-    /// <returns>   True if <paramref name="strTxt"/> is a valid parameter for a binary operator, 
+    /// <returns>   True if <paramref name="text"/> is a valid parameter for a binary operator, 
     ///             else returns false.</returns>
     /// --------------------------------------------------------------------------------------------
-    private static bool IsBinaryOperatorParameter(string strTxt)
-    {
-        return Regex.IsMatch(strTxt, @"[a-zA-Z0-9_\.)\]]$") || IsConstantString(strTxt);
+    private static bool IsBinaryOperatorParameter(string text) {
+        return Regex.IsMatch(text, @"[a-zA-Z0-9_\.)\]]$") || IsConstantString(text);
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="strTxt"/> is a complete or partial 
+    /// <summary>   Returns true if <paramref name="text"/> is a complete or partial 
     ///             valid R syntactic name or key word, else returns false.<para>
     ///             Please note that the rules for syntactic names are actually stricter than 
     ///             the rules used in this function, but this library assumes it is parsing valid 
     ///             R code. </para></summary>
     /// 
-    /// <param name="strTxt">   The text to check. </param>
+    /// <param name="text">   The text to check. </param>
     /// 
-    /// <returns>   True if <paramref name="strTxt"/> is a valid R syntactic name or key word, 
+    /// <returns>   True if <paramref name="text"/> is a valid R syntactic name or key word, 
     ///             else returns false.</returns>
     /// --------------------------------------------------------------------------------------------
-    private static bool IsSyntacticName(string strTxt)
-    {
-        if (string.IsNullOrEmpty(strTxt))
-        {
-            return false;
-        }
-        return Regex.IsMatch(strTxt, @"^[a-zA-Z0-9_\.]+$") || Regex.IsMatch(strTxt, "^`.*");
+    private static bool IsSyntacticName(string text) {
+        return Regex.IsMatch(text, @"^[a-zA-Z0-9_\.]+$") || Regex.IsMatch(text, "^`.*");
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="strTxt"/> is a complete or partial string 
+    /// <summary>   Returns true if <paramref name="text"/> is a complete or partial string 
     ///             constant, else returns false.<para>
     ///             String constants are delimited by a pair of single (‘'’), double (‘"’)
     ///             or backtick ('`') quotes and can contain all other printable characters. 
     ///             Quotes and other special characters within strings are specified using escape 
     ///             sequences. </para></summary>
     /// 
-    /// <param name="strTxt">   The text to check. </param>
+    /// <param name="text">   The text to check. </param>
     /// 
-    /// <returns>   True if <paramref name="strTxt"/> is a complete or partial string constant,
+    /// <returns>   True if <paramref name="text"/> is a complete or partial string constant,
     ///             else returns false.</returns>
     /// --------------------------------------------------------------------------------------------
-    private static bool IsConstantString(string strTxt)
-    {
-        if (!string.IsNullOrEmpty(strTxt) && (Regex.IsMatch(strTxt, "^\".*") || Regex.IsMatch(strTxt, "^'.*") || Regex.IsMatch(strTxt, "^`.*")))
-        {
-            return true;
-        }
-        return false;
+    private static bool IsConstantString(string text) {
+        return Regex.IsMatch(text, "^\".*") || 
+               Regex.IsMatch(text, "^'.*") || 
+               Regex.IsMatch(text, "^`.*");
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="strTxt"/> is a comment, else returns false.
+    /// <summary>   Returns true if <paramref name="text"/> is a comment, else returns false.
     ///             <para>
     ///             Any text from a # character to the end of the line is taken to be a comment,
     ///             unless the # character is inside a quoted string. </para></summary>
     /// 
-    /// <param name="strTxt">   The text to check. </param>
+    /// <param name="text">   The text to check. </param>
     /// 
-    /// <returns>   True if <paramref name="strTxt"/> is a comment, else returns false.</returns>
+    /// <returns>   True if <paramref name="text"/> is a comment, else returns false.</returns>
     /// --------------------------------------------------------------------------------------------
-    private static bool IsComment(string strTxt)
-    {
-        if (!string.IsNullOrEmpty(strTxt) && Regex.IsMatch(strTxt, "^#.*"))
-        {
-            return true;
-        }
-        return false;
+    private static bool IsComment(string text) {
+        return Regex.IsMatch(text, "^#.*");
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="strTxt"/> is sequence of spaces (and no other 
+    /// <summary>   Returns true if <paramref name="text"/> is sequence of spaces (and no other 
     ///             characters), else returns false. </summary>
     /// 
-    /// <param name="strTxt">   The text to check . </param>
+    /// <param name="text">   The text to check . </param>
     /// 
-    /// <returns>   True  if <paramref name="strTxt"/> is sequence of spaces (and no other 
+    /// <returns>   True  if <paramref name="text"/> is sequence of spaces (and no other 
     ///             characters), else returns false. </returns>
     /// --------------------------------------------------------------------------------------------
-    public static bool IsSequenceOfSpaces(string strTxt) // TODO make private?
-    {
-        return strTxt.Length > 0 && strTxt != "\n" && Regex.IsMatch(strTxt, "^ *$");
+    private static bool IsSequenceOfSpaces(string text) {
+        return text != "\n" && Regex.IsMatch(text, "^ *$");
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="strTxt"/> is a functional R element 
+    /// <summary>   Returns true if <paramref name="text"/> is a functional R element 
     ///             (i.e. not empty, and not a space, comment or new line), else returns false. </summary>
     /// 
-    /// <param name="strTxt">   The text to check . </param>
+    /// <param name="text">   The text to check . </param>
     /// 
-    /// <returns>   True  if <paramref name="strTxt"/> is a functional R element
+    /// <returns>   True  if <paramref name="text"/> is a functional R element
     ///             (i.e. not a space, comment or new line), else returns false. </returns>
     /// --------------------------------------------------------------------------------------------
-    public static bool IsElement(string strTxt) // TODO make private?
-    {
-        if (!(string.IsNullOrEmpty(strTxt) || IsNewLine(strTxt) || IsSequenceOfSpaces(strTxt) || IsComment(strTxt)))
-        {
-            return true;
-        }
-        return false;
+    public static bool IsElement(string text) { // TODO make private?
+        return !(IsNewLine(text) || IsSequenceOfSpaces(text) || IsComment(text));
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="strTxt"/> is a complete or partial  
+    /// <summary>   Returns true if <paramref name="text"/> is a complete or partial  
     ///             user-defined operator, else returns false.</summary>
     /// 
-    /// <param name="strTxt">   The text to check. </param>
+    /// <param name="text">   The text to check. </param>
     /// 
-    /// <returns>   True if <paramref name="strTxt"/> is a complete or partial  
+    /// <returns>   True if <paramref name="text"/> is a complete or partial  
     ///             user-defined operator, else returns false.</returns>
     /// --------------------------------------------------------------------------------------------
-    public static bool IsOperatorUserDefined(string strTxt)
-    {
-        if (!string.IsNullOrEmpty(strTxt) && Regex.IsMatch(strTxt, "^%.*"))
-        {
-            return true;
-        }
-        return false;
+    public static bool IsOperatorUserDefined(string text) { // TODO make private?
+        return Regex.IsMatch(text, "^%.*");
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="strTxt"/> is a resrved operator, else returns 
+    /// <summary>   Returns true if <paramref name="text"/> is a resrved operator, else returns 
     ///             false.</summary>
     /// 
-    /// <param name="strTxt">   The text to check. </param>
+    /// <param name="text">   The text to check. </param>
     /// 
-    /// <returns>   True if <paramref name="strTxt"/> is a reserved operator, else returns false.
+    /// <returns>   True if <paramref name="text"/> is a reserved operator, else returns false.
     ///             </returns>
     /// --------------------------------------------------------------------------------------------
-    public static bool IsOperatorReserved(string strTxt) // TODO make private?
-    {
-        string[] arrROperators = new string[] { "::", ":::", "$", "@", "^", ":", "%%", "%/%", "%*%", "%o%", "%x%", "%in%", "/", "*", "+", "-", "<", ">", "<=", ">=", "==", "!=", "!", "&", "&&", "|", "||", "|>", "~", "->", "->>", "<-", "<<-", "=", "?", "??" };
-        return arrROperators.Contains(strTxt);
+    public static bool IsOperatorReserved(string text) { // TODO make private?
+        var operators = new string[] { "::", ":::", "$", "@", "^", ":", "%%", "%/%", "%*%", 
+                "%o%", "%x%", "%in%", "/", "*", "+", "-", "<", ">", "<=", ">=", "==", "!=", "!", 
+                "&", "&&", "|", "||", "|>", "~", "->", "->>", "<-", "<<-", "=", "?", "??" };
+        return operators.Contains(text);
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="strTxt"/> is a bracket operator, else returns 
+    /// <summary>   Returns true if <paramref name="text"/> is a bracket operator, else returns 
     ///             false.</summary>
     /// 
-    /// <param name="strTxt">   The text to check. </param>
+    /// <param name="text">   The text to check. </param>
     /// 
-    /// <returns>   True if <paramref name="strTxt"/> is a bracket operator, else returns false.
+    /// <returns>   True if <paramref name="text"/> is a bracket operator, else returns false.
     ///             </returns>
     /// --------------------------------------------------------------------------------------------
-    private static bool IsOperatorBrackets(string strTxt)
-    {
-        string[] arrROperatorBrackets = new string[] { "[", "]", "[[", "]]" };
-        return arrROperatorBrackets.Contains(strTxt);
+    private static bool IsOperatorBrackets(string text) {
+        var operatorBrackets = new string[] { "[", "]", "[[", "]]" };
+        return operatorBrackets.Contains(text);
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="strTxt"/> is a unary operator, else returns 
+    /// <summary>   Returns true if <paramref name="text"/> is a unary operator, else returns 
     ///             false.</summary>
     /// 
-    /// <param name="strTxt">   The text to check. </param>
+    /// <param name="text">   The text to check. </param>
     /// 
-    /// <returns>   True if <paramref name="strTxt"/> is a unary operator, else returns false.
+    /// <returns>   True if <paramref name="text"/> is a unary operator, else returns false.
     ///             </returns>
     /// --------------------------------------------------------------------------------------------
-    private static bool IsOperatorUnary(string strTxt)
-    {
-        string[] arrROperatorUnary = new string[] { "+", "-", "!", "~", "?", "??" };
-        return arrROperatorUnary.Contains(strTxt);
+    private static bool IsOperatorUnary(string text) {
+        var operatorUnaries = new string[] { "+", "-", "!", "~", "?", "??" };
+        return operatorUnaries.Contains(text);
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="strTxt"/> is a bracket, else returns 
+    /// <summary>   Returns true if <paramref name="text"/> is a bracket, else returns 
     ///             false.</summary>
     /// 
-    /// <param name="strTxt">   The text to check. </param>
+    /// <param name="text">   The text to check. </param>
     /// 
-    /// <returns>   True if <paramref name="strTxt"/> is a bracket, else returns false.
+    /// <returns>   True if <paramref name="text"/> is a bracket, else returns false.
     ///             </returns>
     /// --------------------------------------------------------------------------------------------
-    private static bool IsBracket(string strTxt)
-    {
-        string[] arrRBrackets = new string[] { "(", ")", "{", "}" };
-        return arrRBrackets.Contains(strTxt);
+    private static bool IsBracket(string text) {
+        var brackets = new string[] { "(", ")", "{", "}" };
+        return brackets.Contains(text);
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="strTxt"/> is a new line, else returns 
+    /// <summary>   Returns true if <paramref name="text"/> is a new line, else returns 
     ///             false.</summary>
     /// 
-    /// <param name="strTxt">   The text to check. </param>
+    /// <param name="text">   The text to check. </param>
     /// 
-    /// <returns>   True if <paramref name="strTxt"/> is a new line, else returns false.
+    /// <returns>   True if <paramref name="text"/> is a new line, else returns false.
     ///             </returns>
     /// --------------------------------------------------------------------------------------------
-    public static bool IsNewLine(string strTxt)
-    {
-        string[] arrRNewLines = new string[] { "\r", "\n", "\r\n" };
-        return arrRNewLines.Contains(strTxt);
+    public static bool IsNewLine(string text) { // TODO make private?
+        var arrRNewLines = new string[] { "\r", "\n", "\r\n" };
+        return arrRNewLines.Contains(text);
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="strTxt"/> is a key word, else returns 
+    /// <summary>   Returns true if <paramref name="text"/> is a key word, else returns 
     ///             false.</summary>
     /// 
-    /// <param name="strTxt">   The text to check. </param>
+    /// <param name="text">   The text to check. </param>
     /// 
-    /// <returns>   True if <paramref name="strTxt"/> is a key word, else returns false.
+    /// <returns>   True if <paramref name="text"/> is a key word, else returns false.
     ///             </returns>
     /// --------------------------------------------------------------------------------------------
-    private static bool IsKeyWord(string strTxt)
-    {
-        string[] arrKeyWords = new string[] { "if", "else", "repeat", "while", "function", "for", "in", "next", "break" };
-        return arrKeyWords.Contains(strTxt);
+    private static bool IsKeyWord(string text) {
+        var arrKeyWords = new string[] { "if", "else", "repeat", "while", "function", "for", "in", "next", "break" };
+        return arrKeyWords.Contains(text);
     }
 
 }
