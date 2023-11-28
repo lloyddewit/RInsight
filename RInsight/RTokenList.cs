@@ -6,7 +6,7 @@ namespace RInsight;
 /// <summary>
 /// TODO
 /// </summary>
-public static class RTokenList {
+public class RTokenList {
 
     /// <summary>   The current state of the token parsing. </summary>
     private enum typTokenState
@@ -15,6 +15,13 @@ public static class RTokenList {
         WaitingForCloseCondition,
         WaitingForStartScript,
         WaitingForEndScript
+    }
+
+    public List<RToken>? Tokens { get; }
+
+    public RTokenList(string script)
+    {
+        Tokens = GetLstTokens(script);
     }
 
     /// --------------------------------------------------------------------------------------------
@@ -28,8 +35,8 @@ public static class RTokenList {
     /// 
     /// <returns>   <paramref name="lstLexemes"/> as a list of tokens. </returns>
     /// --------------------------------------------------------------------------------------------
-    public static List<RToken>? GetLstTokens(string script)
-    {
+    private static List<RToken>? GetLstTokens(string script) {
+
         List<string> lstLexemes = GetLstLexemes(script);
 
         if (lstLexemes is null || lstLexemes.Count == 0)

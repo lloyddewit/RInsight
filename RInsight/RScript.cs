@@ -61,7 +61,7 @@ public class RScript {
             return;
         }
 
-        var lstTokens = RTokenList.GetLstTokens(strInput);
+        var lstTokens = new RTokenList(strInput).Tokens;
 
         if (lstTokens is null) {
             return;
