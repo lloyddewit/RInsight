@@ -3,20 +3,15 @@
   <Class Name="RInsight.RTokenList">
     <Position X="12.75" Y="0.5" Width="1.5" />
     <NestedTypes>
-      <Enum Name="RInsight.RTokenList.TokenType" Collapsed="true">
-        <TypeIdentifier>
-          <NewMemberFileName>RToken - Copy.cs</NewMemberFileName>
-        </TypeIdentifier>
-      </Enum>
-      <Enum Name="RInsight.RTokenList.typTokenState" Collapsed="true">
+      <Enum Name="RInsight.RTokenList.tokenState" Collapsed="true">
         <TypeIdentifier>
           <NewMemberFileName>RTokenList.cs</NewMemberFileName>
         </TypeIdentifier>
       </Enum>
     </NestedTypes>
     <TypeIdentifier>
-      <HashCode>QAiAAAACAQAAAAAAIAAAAIAECAABAAAJIAASAACADAA=</HashCode>
-      <FileName>RToken - Copy.cs</FileName>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAABAAA=</HashCode>
+      <FileName>RTokenList.cs</FileName>
       <NewMemberFileName>RToken.cs</NewMemberFileName>
     </TypeIdentifier>
   </Class>
@@ -81,6 +76,25 @@
     <TypeIdentifier>
       <HashCode>AAgAAAAAAAQCAAQCAAAAABAAAAAAAAAAAAAAAAAAACA=</HashCode>
       <FileName>RParameter.cs</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="RInsight.RToken">
+    <Position X="14.75" Y="0.5" Width="1.5" />
+    <NestedTypes>
+      <Enum Name="RInsight.RToken.TokenType" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>RToken.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+      <Enum Name="RInsight.RToken.typTokenState" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>RToken.cs</NewMemberFileName>
+        </TypeIdentifier>
+      </Enum>
+    </NestedTypes>
+    <TypeIdentifier>
+      <HashCode>QAiAAAACAQAAAAAAIAAAAIAECAABAAAJIAASAACADAA=</HashCode>
+      <FileName>RToken.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Font Name="Segoe UI" Size="9" />
