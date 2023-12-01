@@ -1,72 +1,107 @@
 ﻿using System.Text.RegularExpressions;
-using System.Xml.Linq;
 
 namespace RInsight;
 
 /// <summary>
 /// TODO
 /// </summary>
-public class RLexeme {
+public class RLexeme
+{
 
-    /// <summary>   The text associated with the lexeme. </summary>
+    /// <summary> The text associated with the lexeme. </summary>
     public string Text { get; }
 
-    public bool IsValid => _IsValidLexeme();
+    /// <summary> True if this lexeme is a valid parameter for a binary operator (an identifier
+    ///           or a constant).</summary>
+    public bool IsBinaryOperatorParameter => _IsBinaryOperatorParameter();
 
-    public bool IsBinaryOperatorParameter
-    { get { return _IsBinaryOperatorParameter(); } }
+    /// <summary> True if this lexeme is a round or curly bracket.</summary>
     public bool IsBracket => _IsBracket();
+
+    /// <summary> True if this lexeme is a comment.<para>
+    ///           Any text from a # character to the end of the line is taken to be a comment,
+    ///           unless the # character is inside a quoted string. </para></summary>
     public bool IsComment => _IsComment();
+
+    /// <summary> True if this lexeme is a complete or partial string constant.<para>
+    ///           String constants are delimited by a pair of single (‘'’), double (‘"’)
+    ///           or backtick ('`') quotes and can contain all other printable characters. 
+    ///           Quotes and other special characters within strings are specified using escape 
+    ///           sequences. </para></summary>
     public bool IsConstantString => _IsConstantString();
+
+    /// <summary> True if this lexeme is a functional R element 
+    ///           (i.e. not empty, and not a space, comment or new line). </summary>
     public bool IsElement => _IsElement();
+
+    /// <summary> True if this lexeme is a key word ("if", "else", "repeat", "while", "function", 
+    ///           "for", "in", "next", or "break").</summary>
     public bool IsKeyWord => _IsKeyWord();
+
+    /// <summary> True if this lexeme is a new line, carriage return or new line plus carriage 
+    ///           return.</summary>
     public bool IsNewLine => _IsNewLine();
-    public bool IsSequenceOfSpaces => _IsSequenceOfSpaces();
-    public bool IsSyntacticName => _IsSyntacticName();
+
+    /// <summary> True if this lexeme is a bracket operator ("[" or "[[").</summary>
     public bool IsOperatorBrackets => _IsOperatorBrackets();
-    public bool IsOperatorUnary => _IsOperatorUnary();
+
+    /// <summary> True if this lexeme is a reserved operator ("*", "+", "-" etc.).</summary>
     public bool IsOperatorReserved => _IsOperatorReserved();
+
+    /// <summary> True if this lexeme is a unary operator ("+", "-", "!", "~", "?" or "??").
+    /// </summary>
+    public bool IsOperatorUnary => _IsOperatorUnary();
+
+    /// <summary> True if this lexeme is a complete or partial user-defined operator (e.g. "%>%").
+    /// </summary>
     public bool IsOperatorUserDefined => _IsOperatorUserDefined();
+
+    /// <summary> True if this lexeme is sequence of spaces (and no other characters).</summary>
+    public bool IsSequenceOfSpaces => _IsSequenceOfSpaces();
+
+    /// <summary> True if this lexeme is a complete or partial valid R syntactic name or key word.
+    ///           <para>
+    ///           Please note that the rules for syntactic names are actually stricter than the 
+    ///           rules used in this function, but this library assumes it is parsing valid R code.
+    ///           </para></summary>
+    public bool IsSyntacticName => _IsSyntacticName();
+
+    /// <summary> True if this lexeme's text is a valid lexeme (either partial or complete).
+    ///           </summary>
+    public bool IsValid => _IsValidLexeme();
 
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
-    ///     Constructs a new token with lexeme <paramref name="textNew"/> and token type 
-    ///     <paramref name="tokenTypeNew"/>.
-    ///     <para>
-    ///     A token is a string of characters that represent a valid R element, plus meta data about
-    ///     the token type (identifier, operator, keyword, bracket etc.).
-    ///     </para>
+    ///     Constructs a new lexeme with text <paramref name="text"/>.<para>
+    ///     A lexeme is a string of characters that represent a potentially valid R element 
+    ///     (identifier, operator, keyword, bracket etc.). </para>
     /// </summary>
     /// 
-    /// <param name="textNew">    The lexeme to associate with the token. </param>
-    /// <param name="tokenTypeNew">  The token type (function name, key word, comment etc.). </param>
+    /// <param name="text">    The text to associate with the lexeme. </param>
     /// --------------------------------------------------------------------------------------------
-    public RLexeme(string text) {
+    public RLexeme(string text)
+    {
         Text = text;
     }
 
-
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="text"/> is a valid parameter for a binary 
+    /// <summary>   Returns true if this lexeme's text is a valid parameter for a binary 
     ///             operator, else returns false.</summary>
     /// 
-    /// <param name="text">   The text to check. </param>
-    /// 
-    /// <returns>   True if <paramref name="text"/> is a valid parameter for a binary operator, 
+    /// <returns>   True if this lexeme's text is a valid parameter for a binary operator, 
     ///             else returns false.</returns>
     /// --------------------------------------------------------------------------------------------
-    private bool _IsBinaryOperatorParameter() {
+    private bool _IsBinaryOperatorParameter()
+    {
         return Regex.IsMatch(Text, @"[a-zA-Z0-9_\.)\]]$") || _IsConstantString();
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="text"/> is a bracket, else returns 
+    /// <summary>   Returns true if this lexeme's text is a bracket, else returns 
     ///             false.</summary>
     /// 
-    /// <param name="text">   The text to check. </param>
-    /// 
-    /// <returns>   True if <paramref name="text"/> is a bracket, else returns false.
+    /// <returns>   True if this lexeme's text is a bracket, else returns false.
     ///             </returns>
     /// --------------------------------------------------------------------------------------------
     private bool _IsBracket()
@@ -76,14 +111,12 @@ public class RLexeme {
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="text"/> is a comment, else returns false.
+    /// <summary>   Returns true if this lexeme's text is a comment, else returns false.
     ///             <para>
     ///             Any text from a # character to the end of the line is taken to be a comment,
     ///             unless the # character is inside a quoted string. </para></summary>
     /// 
-    /// <param name="text">   The text to check. </param>
-    /// 
-    /// <returns>   True if <paramref name="text"/> is a comment, else returns false.</returns>
+    /// <returns>   True if this lexeme's text is a comment, else returns false.</returns>
     /// --------------------------------------------------------------------------------------------
     private bool _IsComment()
     {
@@ -91,16 +124,14 @@ public class RLexeme {
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="text"/> is a complete or partial string 
+    /// <summary>   Returns true if this lexeme's text is a complete or partial string 
     ///             constant, else returns false.<para>
     ///             String constants are delimited by a pair of single (‘'’), double (‘"’)
     ///             or backtick ('`') quotes and can contain all other printable characters. 
     ///             Quotes and other special characters within strings are specified using escape 
     ///             sequences. </para></summary>
     /// 
-    /// <param name="text">   The text to check. </param>
-    /// 
-    /// <returns>   True if <paramref name="text"/> is a complete or partial string constant,
+    /// <returns>   True if this lexeme's text is a complete or partial string constant,
     ///             else returns false.</returns>
     /// --------------------------------------------------------------------------------------------
     private bool _IsConstantString()
@@ -111,26 +142,22 @@ public class RLexeme {
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="text"/> is a functional R element 
+    /// <summary>   Returns true if this lexeme's text is a functional R element 
     ///             (i.e. not empty, and not a space, comment or new line), else returns false. </summary>
     /// 
-    /// <param name="text">   The text to check . </param>
-    /// 
-    /// <returns>   True  if <paramref name="text"/> is a functional R element
+    /// <returns>   True  if this lexeme's text is a functional R element
     ///             (i.e. not a space, comment or new line), else returns false. </returns>
     /// --------------------------------------------------------------------------------------------
     private bool _IsElement()
-    { // TODO make private?
+    {
         return !(_IsNewLine() || _IsSequenceOfSpaces() || _IsComment());
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="text"/> is a key word, else returns 
+    /// <summary>   Returns true if this lexeme's text is a key word, else returns 
     ///             false.</summary>
     /// 
-    /// <param name="text">   The text to check. </param>
-    /// 
-    /// <returns>   True if <paramref name="text"/> is a key word, else returns false.
+    /// <returns>   True if this lexeme's text is a key word, else returns false.
     ///             </returns>
     /// --------------------------------------------------------------------------------------------
     private bool _IsKeyWord()
@@ -140,27 +167,23 @@ public class RLexeme {
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="text"/> is a new line, else returns 
+    /// <summary>   Returns true if this lexeme's text is a new line, else returns 
     ///             false.</summary>
     /// 
-    /// <param name="text">   The text to check. </param>
-    /// 
-    /// <returns>   True if <paramref name="text"/> is a new line, else returns false.
+    /// <returns>   True if this lexeme's text is a new line, else returns false.
     ///             </returns>
     /// --------------------------------------------------------------------------------------------
     private bool _IsNewLine()
-    { // TODO make private?
+    {
         var arrRNewLines = new string[] { "\r", "\n", "\r\n" };
         return arrRNewLines.Contains(Text);
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="text"/> is a bracket operator, else returns 
+    /// <summary>   Returns true if this lexeme's text is a bracket operator, else returns 
     ///             false.</summary>
     /// 
-    /// <param name="text">   The text to check. </param>
-    /// 
-    /// <returns>   True if <paramref name="text"/> is a bracket operator, else returns false.
+    /// <returns>   True if this lexeme's text is a bracket operator, else returns false.
     ///             </returns>
     /// --------------------------------------------------------------------------------------------
     private bool _IsOperatorBrackets()
@@ -170,16 +193,14 @@ public class RLexeme {
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="text"/> is a resrved operator, else returns 
+    /// <summary>   Returns true if this lexeme's text is a reserved operator, else returns 
     ///             false.</summary>
     /// 
-    /// <param name="text">   The text to check. </param>
-    /// 
-    /// <returns>   True if <paramref name="text"/> is a reserved operator, else returns false.
+    /// <returns>   True if this lexeme's text is a reserved operator, else returns false.
     ///             </returns>
     /// --------------------------------------------------------------------------------------------
     private bool _IsOperatorReserved()
-    { // TODO make private?
+    {
         var operators = new string[] { "::", ":::", "$", "@", "^", ":", "%%", "%/%", "%*%",
                 "%o%", "%x%", "%in%", "/", "*", "+", "-", "<", ">", "<=", ">=", "==", "!=", "!",
                 "&", "&&", "|", "||", "|>", "~", "->", "->>", "<-", "<<-", "=", "?", "??" };
@@ -187,12 +208,10 @@ public class RLexeme {
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="text"/> is a unary operator, else returns 
+    /// <summary>   Returns true if this lexeme's text is a unary operator, else returns 
     ///             false.</summary>
     /// 
-    /// <param name="text">   The text to check. </param>
-    /// 
-    /// <returns>   True if <paramref name="text"/> is a unary operator, else returns false.
+    /// <returns>   True if this lexeme's text is a unary operator, else returns false.
     ///             </returns>
     /// --------------------------------------------------------------------------------------------
     private bool _IsOperatorUnary()
@@ -202,26 +221,22 @@ public class RLexeme {
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="text"/> is a complete or partial  
+    /// <summary>   Returns true if this lexeme's text is a complete or partial  
     ///             user-defined operator, else returns false.</summary>
     /// 
-    /// <param name="text">   The text to check. </param>
-    /// 
-    /// <returns>   True if <paramref name="text"/> is a complete or partial  
+    /// <returns>   True if this lexeme's text is a complete or partial  
     ///             user-defined operator, else returns false.</returns>
     /// --------------------------------------------------------------------------------------------
     private bool _IsOperatorUserDefined()
-    { // TODO make private?
+    {
         return Regex.IsMatch(Text, "^%.*");
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="text"/> is sequence of spaces (and no other 
+    /// <summary>   Returns true if this lexeme's text is sequence of spaces (and no other 
     ///             characters), else returns false. </summary>
     /// 
-    /// <param name="text">   The text to check . </param>
-    /// 
-    /// <returns>   True  if <paramref name="text"/> is sequence of spaces (and no other 
+    /// <returns>   True  if this lexeme's text is sequence of spaces (and no other 
     ///             characters), else returns false. </returns>
     /// --------------------------------------------------------------------------------------------
     private bool _IsSequenceOfSpaces()
@@ -230,18 +245,17 @@ public class RLexeme {
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="text"/> is a complete or partial 
+    /// <summary>   Returns true if this lexeme's text is a complete or partial 
     ///             valid R syntactic name or key word, else returns false.<para>
     ///             Please note that the rules for syntactic names are actually stricter than 
     ///             the rules used in this function, but this library assumes it is parsing valid 
     ///             R code. </para></summary>
     /// 
-    /// <param name="text">   The text to check. </param>
-    /// 
-    /// <returns>   True if <paramref name="text"/> is a valid R syntactic name or key word, 
+    /// <returns>   True if this lexeme's text is a valid R syntactic name or key word, 
     ///             else returns false.</returns>
     /// --------------------------------------------------------------------------------------------
-    private bool _IsSyntacticName() {
+    private bool _IsSyntacticName()
+    {
         return Regex.IsMatch(Text, @"^[a-zA-Z0-9_\.]+$") || Regex.IsMatch(Text, "^`.*");
     }
 
@@ -249,8 +263,6 @@ public class RLexeme {
     /// <summary>   Returns true if <paramref name="lexeme"/> is a valid lexeme (either partial or 
     ///             complete), else returns false.
     ///             </summary>
-    /// 
-    /// <param name="lexeme">   A sequence of characters from a syntactically correct R script </param>
     /// 
     /// <returns>   True if <paramref name="lexeme"/> is a valid lexeme, else false. </returns>
     /// --------------------------------------------------------------------------------------------
