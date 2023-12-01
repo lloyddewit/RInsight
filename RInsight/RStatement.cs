@@ -139,12 +139,12 @@ public class RStatement
             var clsTokenChildRight = lstTokenTree[0].childTokens[lstTokenTree[0].childTokens.Count - 1];
 
             // if the statement has a left assignment (e.g. 'x<-value', 'x<<-value' or 'x=value')
-            if (operatorPrecedences[iOperatorsLeftAssignment1].Contains(lstTokenTree[0].text) || operatorPrecedences[iOperatorsLeftAssignment2].Contains(lstTokenTree[0].text))
+            if (operatorPrecedences[iOperatorsLeftAssignment1].Contains(lstTokenTree[0].Lexeme.Text) || operatorPrecedences[iOperatorsLeftAssignment2].Contains(lstTokenTree[0].Lexeme.Text))
             {
                 clsAssignment = GetRElement(clsTokenChildLeft, dctAssignments);
                 clsElement = GetRElement(clsTokenChildRight, dctAssignments);
             }
-            else if (operatorPrecedences[iOperatorsRightAssignment].Contains(lstTokenTree[0].text))
+            else if (operatorPrecedences[iOperatorsRightAssignment].Contains(lstTokenTree[0].Lexeme.Text))
             {
                 // else if the statement has a right assignment (e.g. 'value->x' or 'value->>x')
                 clsAssignment = GetRElement(clsTokenChildRight, dctAssignments);
@@ -155,8 +155,8 @@ public class RStatement
         // if there was an assigment then set the assignment operator and its presentation information
         if (!(clsAssignment == null))
         {
-            strAssignmentOperator = lstTokenTree[0].text;
-            strAssignmentPrefix = lstTokenTree[0].childTokens[0].tokentype == RToken.TokenType.RPresentation ? lstTokenTree[0].childTokens[0].text : "";
+            strAssignmentOperator = lstTokenTree[0].Lexeme.Text;
+            strAssignmentPrefix = lstTokenTree[0].childTokens[0].tokentype == RToken.TokenType.RPresentation ? lstTokenTree[0].childTokens[0].Lexeme.Text : "";
         }
         else // if there was no assignment, then build the main element from the token tree's top element
         {
@@ -167,13 +167,13 @@ public class RStatement
         var clsTokenEndStatement = lstTokenTree[lstTokenTree.Count - 1];
         if (clsTokenEndStatement.tokentype == RToken.TokenType.REndStatement || clsTokenEndStatement.tokentype == RToken.TokenType.REndScript)
         {
-            if (clsTokenEndStatement.text == ";")
+            if (clsTokenEndStatement.Lexeme.Text == ";")
             {
                 bTerminateWithNewline = false;
             }
             else // store any remaining presentation data associated with the newline
             {
-                strSuffix = clsTokenEndStatement.childTokens.Count > 0 && clsTokenEndStatement.childTokens[0].tokentype == RToken.TokenType.RPresentation ? clsTokenEndStatement.childTokens[0].text : "";
+                strSuffix = clsTokenEndStatement.childTokens.Count > 0 && clsTokenEndStatement.childTokens[0].tokentype == RToken.TokenType.RPresentation ? clsTokenEndStatement.childTokens[0].Lexeme.Text : "";
                 // do not include any trailing newlines
                 strSuffix = strSuffix.EndsWith(Constants.vbLf) ? strSuffix.Substring(0, strSuffix.Length - 1) : strSuffix;
             }
@@ -430,7 +430,7 @@ public class RStatement
                 case RToken.TokenType.RComment:
                 case RToken.TokenType.RNewLine:
                     {
-                        strPrefix += clsToken.text;
+                        strPrefix += clsToken.Lexeme.Text;
                         break;
                     }
 
@@ -438,7 +438,7 @@ public class RStatement
                     {
                         if (!string.IsNullOrEmpty(strPrefix))
                         {
-                            clsToken.childTokens.Add(new RToken(strPrefix, RToken.TokenType.RPresentation));
+                            clsToken.childTokens.Add(new RToken(new RLexeme(strPrefix), RToken.TokenType.RPresentation));
                         }
                         lstTokensNew.Add(clsToken.CloneMe());
                         strPrefix = "";
@@ -453,8 +453,8 @@ public class RStatement
         if (!string.IsNullOrEmpty(strPrefix))
         {
             // add a new end statement token that contains the presentation information
-            clsToken = new RToken("", RToken.TokenType.REndStatement);
-            clsToken.childTokens.Add(new RToken(strPrefix, RToken.TokenType.RPresentation));
+            clsToken = new RToken(new RLexeme(""), RToken.TokenType.REndStatement);
+            clsToken.childTokens.Add(new RToken(new RLexeme(strPrefix), RToken.TokenType.RPresentation));
             lstTokensNew.Add(clsToken);
         }
 
@@ -497,7 +497,7 @@ public class RStatement
         {
             clsToken = lstTokens[iPos];
             iPos += 1;
-            switch (clsToken.text ?? "")
+            switch (clsToken.Lexeme.Text ?? "")
             {
                 case "(":
                     {
@@ -603,9 +603,9 @@ public class RStatement
 
             // only process commas that separate function parameters,
             // ignore commas inside square bracket (e.g. `a[b,c]`)
-            iNumOpenBrackets += lstOpenBrackets.Contains(clsToken.text) ? 1 : 0;
-            iNumOpenBrackets -= lstCloseBrackets.Contains(clsToken.text) ? 1 : 0;
-            if (iNumOpenBrackets == 0 && clsToken.text == ",")
+            iNumOpenBrackets += lstOpenBrackets.Contains(clsToken.Lexeme.Text) ? 1 : 0;
+            iNumOpenBrackets -= lstCloseBrackets.Contains(clsToken.Lexeme.Text) ? 1 : 0;
+            if (iNumOpenBrackets == 0 && clsToken.Lexeme.Text == ",")
             {
                 if (bProcessingComma)
                 {
@@ -714,7 +714,7 @@ public class RStatement
             // that it has already been processed. This happens when the child is in the 
             // same precedence group as the parent but was processed first in accordance 
             // with the left to right rule (e.g. 'a/b*c').
-            if ((operatorPrecedences[iPosOperators].Contains(clsToken.text) || iPosOperators == iOperatorsUserDefined && Regex.IsMatch(clsToken.text, "^%.*%$")) && (clsToken.childTokens.Count == 0 || clsToken.childTokens.Count == 1 && clsToken.childTokens[0].tokentype == RToken.TokenType.RPresentation))
+            if ((operatorPrecedences[iPosOperators].Contains(clsToken.Lexeme.Text) || iPosOperators == iOperatorsUserDefined && Regex.IsMatch(clsToken.Lexeme.Text, "^%.*%$")) && (clsToken.childTokens.Count == 0 || clsToken.childTokens.Count == 1 && clsToken.childTokens[0].tokentype == RToken.TokenType.RPresentation))
             {
 
                 switch (clsToken.tokentype)
@@ -734,12 +734,12 @@ public class RStatement
                             clsToken.childTokens.Add(clsTokenPrev.CloneMe());
                             bPrevTokenProcessed = true;
                             iPosTokens += 1;
-                            string strCloseBracket = clsToken.text == "[" ? "]" : "]]";
+                            string strCloseBracket = clsToken.Lexeme.Text == "[" ? "]" : "]]";
                             int iNumOpenBrackets = 1;
                             while (iPosTokens < lstTokens.Count)
                             {
-                                iNumOpenBrackets += (lstTokens[iPosTokens].text ?? "") == (clsToken.text ?? "") ? 1 : 0;
-                                iNumOpenBrackets -= (lstTokens[iPosTokens].text ?? "") == (strCloseBracket ?? "") ? 1 : 0;
+                                iNumOpenBrackets += (lstTokens[iPosTokens].Lexeme.Text ?? "") == (clsToken.Lexeme.Text ?? "") ? 1 : 0;
+                                iNumOpenBrackets -= (lstTokens[iPosTokens].Lexeme.Text ?? "") == (strCloseBracket ?? "") ? 1 : 0;
                                 // discard the terminating cloe bracket
                                 if (iNumOpenBrackets == 0)
                                 {
@@ -776,7 +776,7 @@ public class RStatement
                             while (iPosTokens < lstTokens.Count - 1)
                             {
                                 clsTokenNext = GetNextToken(lstTokens, iPosTokens);
-                                if (!(clsToken.tokentype == clsTokenNext.tokentype) || !((clsToken.text ?? "") == (clsTokenNext.text ?? "")))
+                                if (!(clsToken.tokentype == clsTokenNext.tokentype) || !((clsToken.Lexeme.Text ?? "") == (clsTokenNext.Lexeme.Text ?? "")))
                                 {
                                     break;
                                 }
@@ -791,7 +791,7 @@ public class RStatement
                     case RToken.TokenType.ROperatorUnaryRight:
                         {
                             // edge case: if we found a unary '+' or '-', but we are not currently processing the unary '+'and '-' operators
-                            if (operatorPrecedences[iOperatorsUnaryOnly].Contains(clsToken.text) && !(iPosOperators == iOperatorsUnaryOnly))
+                            if (operatorPrecedences[iOperatorsUnaryOnly].Contains(clsToken.Lexeme.Text) && !(iPosOperators == iOperatorsUnaryOnly))
                             {
                                 break;
                             }
@@ -893,7 +893,7 @@ public class RStatement
             case RToken.TokenType.RBracket:
                 {
                     // if text is a round bracket, then return the bracket's child
-                    if (clsToken.text == "(")
+                    if (clsToken.Lexeme.Text == "(")
                     {
                         // an open bracket must have at least one child
                         if (clsToken.childTokens.Count < 1 || clsToken.childTokens.Count > 3)
@@ -984,7 +984,7 @@ public class RStatement
                     }
 
                     // if object operator
-                    switch (clsToken.text ?? "")
+                    switch (clsToken.Lexeme.Text ?? "")
                     {
                         case "$":
                             {
@@ -998,10 +998,10 @@ public class RStatement
                                 {
                                     var clsTokenObject = clsToken.childTokens[iPos];
                                     // if the first parameter is a package operator ('::'), then make this the package name for the returned element
-                                    if (iPos == startPos && clsTokenObject.tokentype == RToken.TokenType.ROperatorBinary && clsTokenObject.text == "::")
+                                    if (iPos == startPos && clsTokenObject.tokentype == RToken.TokenType.ROperatorBinary && clsTokenObject.Lexeme.Text == "::")
                                     {
                                         // get the package name and any package presentation information
-                                        strPackageNameNew = GetTokenPackageName(clsTokenObject).text;
+                                        strPackageNameNew = GetTokenPackageName(clsTokenObject).Lexeme.Text;
                                         strPackagePrefixNew = GetPackagePrefix(clsTokenObject);
                                         // get the object associated with the package, and add it to the object list
                                         var objectElement = GetRElement(clsTokenObject.childTokens[clsTokenObject.childTokens.Count - 1], dctAssignments) ?? throw new Exception("The package operator '::' has no associated element.");
@@ -1021,7 +1021,7 @@ public class RStatement
                                 // - the presentation string (optional)
                                 // - the package name
                                 // - the element associated with the package
-                                return GetRElement(clsToken.childTokens[clsToken.childTokens.Count - 1], dctAssignments, bBracketedNew, GetTokenPackageName(clsToken).text, GetPackagePrefix(clsToken)); // else if not an object or package operator, then add each parameter to the operator
+                                return GetRElement(clsToken.childTokens[clsToken.childTokens.Count - 1], dctAssignments, bBracketedNew, GetTokenPackageName(clsToken).Lexeme.Text, GetPackagePrefix(clsToken)); // else if not an object or package operator, then add each parameter to the operator
                             }
 
                         default:
@@ -1060,7 +1060,7 @@ public class RStatement
                     }
 
                     // if element was assigned in a previous statement, then return an assigned element
-                    var clsStatement = dctAssignments.ContainsKey(clsToken.text) ? dctAssignments[clsToken.text] : null;
+                    var clsStatement = dctAssignments.ContainsKey(clsToken.Lexeme.Text) ? dctAssignments[clsToken.Lexeme.Text] : null;
                     if (!(clsStatement == null))
                     {
                         return new RElementAssignable(clsToken, clsStatement, bBracketedNew);
@@ -1131,7 +1131,7 @@ public class RStatement
         }
 
         var clsTokenPackageName = GetTokenPackageName(clsToken);
-        return clsTokenPackageName.childTokens.Count > 0 && clsTokenPackageName.childTokens[0].tokentype == RToken.TokenType.RPresentation ? clsTokenPackageName.childTokens[0].text : "";
+        return clsTokenPackageName.childTokens.Count > 0 && clsTokenPackageName.childTokens[0].tokentype == RToken.TokenType.RPresentation ? clsTokenPackageName.childTokens[0].Lexeme.Text : "";
     }
 
     /// --------------------------------------------------------------------------------------------
@@ -1159,7 +1159,7 @@ public class RStatement
             throw new ArgumentException("Cannot create a named parameter from an empty token.");
         }
 
-        switch (clsToken.text ?? "")
+        switch (clsToken.Lexeme.Text ?? "")
         {
             case "=":
                 {
@@ -1169,13 +1169,13 @@ public class RStatement
                     }
 
                     var clsTokenArgumentName = clsToken.childTokens[clsToken.childTokens.Count - 2];
-                    var clsParameter = new RParameter() { strArgName = clsTokenArgumentName.text };
+                    var clsParameter = new RParameter() { strArgName = clsTokenArgumentName.Lexeme.Text };
                     clsParameter.clsArgValue = GetRElement(clsToken.childTokens[clsToken.childTokens.Count - 1], dctAssignments);
 
                     // set the parameter's formatting prefix to the prefix of the parameter name
                     // Note: if the equals sign has any formatting information then this information 
                     // will be lost.
-                    clsParameter.strPrefix = clsTokenArgumentName.childTokens.Count > 0 && clsTokenArgumentName.childTokens[0].tokentype == RToken.TokenType.RPresentation ? clsTokenArgumentName.childTokens[0].text : "";
+                    clsParameter.strPrefix = clsTokenArgumentName.childTokens.Count > 0 && clsTokenArgumentName.childTokens[0].tokentype == RToken.TokenType.RPresentation ? clsTokenArgumentName.childTokens[0].Lexeme.Text : "";
 
                     return clsParameter;
                 }
@@ -1201,7 +1201,7 @@ public class RStatement
             default:
                 {
                     var clsParameterNamed = new RParameter() { clsArgValue = GetRElement(clsToken, dctAssignments) };
-                    clsParameterNamed.strPrefix = clsToken.childTokens.Count > 0 && clsToken.childTokens[0].tokentype == RToken.TokenType.RPresentation ? clsToken.childTokens[0].text : "";
+                    clsParameterNamed.strPrefix = clsToken.childTokens.Count > 0 && clsToken.childTokens[0].tokentype == RToken.TokenType.RPresentation ? clsToken.childTokens[0].Lexeme.Text : "";
                     return clsParameterNamed;
                 }
         }
@@ -1227,7 +1227,7 @@ public class RStatement
         foreach (var clsTokenChild in clsToken.childTokens)
         {
             // if token is not a presentation token or a close bracket ')', then return the token
-            if (!(clsTokenChild.tokentype == RToken.TokenType.RPresentation) && !(clsTokenChild.tokentype == RToken.TokenType.RBracket && clsTokenChild.text == ")"))
+            if (!(clsTokenChild.tokentype == RToken.TokenType.RPresentation) && !(clsTokenChild.tokentype == RToken.TokenType.RBracket && clsTokenChild.Lexeme.Text == ")"))
             {
                 return clsTokenChild;
             }
@@ -1255,7 +1255,7 @@ public class RStatement
         return new RParameter()
         {
             clsArgValue = GetRElement(clsToken, dctAssignments),
-            strPrefix = clsToken.childTokens.Count > 0 && clsToken.childTokens[0].tokentype == RToken.TokenType.RPresentation ? clsToken.childTokens[0].text : ""
+            strPrefix = clsToken.childTokens.Count > 0 && clsToken.childTokens[0].tokentype == RToken.TokenType.RPresentation ? clsToken.childTokens[0].Lexeme.Text : ""
         };
     }
 

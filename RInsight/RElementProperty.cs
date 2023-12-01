@@ -25,7 +25,7 @@ public class RElementProperty : RElementAssignable
             // remove any formatting information associated with the main element.
             // This is needed to pass test cases such as:
             // 'pkg ::  obj1 $ obj2$ fn1 ()' should be displayed as 'pkg::obj1$obj2$fn1()'
-            clsTokenNew.childTokens[0].text = "";
+            clsTokenNew.childTokens[0].Lexeme = new RLexeme("");
         }
 
         return clsTokenNew;

@@ -31,9 +31,9 @@ public class RElement
 
     public RElement(RToken clsToken, bool bBracketedNew = false, string strPackagePrefix = "")
     {
-        strTxt = clsToken.text;
+        strTxt = clsToken.Lexeme.Text;
         bBracketed = bBracketedNew;
-        strPrefix = strPackagePrefix + (clsToken.childTokens.Count > 0 && clsToken.childTokens[0].tokentype == RToken.TokenType.RPresentation ? clsToken.childTokens[0].text : "");
+        strPrefix = strPackagePrefix + (clsToken.childTokens.Count > 0 && clsToken.childTokens[0].tokentype == RToken.TokenType.RPresentation ? clsToken.childTokens[0].Lexeme.Text : "");
 
     }
 

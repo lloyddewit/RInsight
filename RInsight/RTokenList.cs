@@ -38,9 +38,9 @@ public class RTokenList {
             return;
         }
 
-        string lexemePrev = "";
-        string lexemeCurrent = "";
-        string lexemeNext;
+        var lexemePrev = new RLexeme("");
+        var lexemeCurrent = new RLexeme("");
+        var lexemeNext = new RLexeme("");
         bool lexemePrevOnSameLine = false;
         bool lexemeNextOnSameLine;
         bool statementContainsElement = false;
@@ -73,30 +73,30 @@ public class RTokenList {
             }
 
             // store previous non-space lexeme
-            if (RToken.IsElement(lexemeCurrent))
+            if (lexemeCurrent.IsElement)
             {
                 lexemePrev = lexemeCurrent;
                 lexemePrevOnSameLine = true;
             }
-            else if (RToken.IsNewLine(lexemeCurrent))
+            else if (lexemeCurrent.IsNewLine)
             {
                 lexemePrevOnSameLine = false;
             }
 
             lexemeCurrent = lexemes[pos];
-            statementContainsElement = statementContainsElement ? true : RToken.IsElement(lexemeCurrent);
+            statementContainsElement = statementContainsElement ? true : lexemeCurrent.IsElement;
 
             // find next lexeme that represents an R element
-            lexemeNext = "";
+            lexemeNext = new RLexeme("");
             lexemeNextOnSameLine = true;
             for (int nextPos = pos + 1; nextPos <= lexemes.Count - 1; nextPos++)
             {
-                string lexeme = lexemes[nextPos];
-                if (RToken.IsNewLine(lexeme))
+                RLexeme lexeme = lexemes[nextPos];
+                if (lexeme.IsNewLine)
                 {
                     lexemeNextOnSameLine = false;
                 }
-                else if (RToken.IsElement(lexeme))
+                else if (lexeme.IsElement)
                 {
                     lexemeNext = lexeme;
                     break;
@@ -108,7 +108,7 @@ public class RTokenList {
             // or is just for presentation.
             // The current sequence of tokens is considered a complete valid R statement if it 
             // has no open brackets and it does not end in an operator.
-            switch (lexemeCurrent)
+            switch (lexemeCurrent.Text)
             {
                 case "(":
                 case "[":
@@ -144,7 +144,7 @@ public class RTokenList {
 
             // identify the token associated with the current lexeme and add the token to the list
             token = new RToken(lexemePrev, lexemeCurrent, lexemeNext, lexemePrevOnSameLine, lexemeNextOnSameLine, scriptPos);
-            scriptPos += (uint)lexemeCurrent.Length;
+            scriptPos += (uint)lexemeCurrent.Text.Length;
 
             // Process key words
             // Determine whether the next end statement will also be the end of the current script.
@@ -167,7 +167,7 @@ public class RTokenList {
                         {
                             if (!(token.tokentype == RToken.TokenType.RNewLine))
                             {
-                                if (token.text == "(")
+                                if (token.Lexeme.Text == "(")
                                 {
                                     tokenState.Pop();
                                     tokenState.Push(RTokenList.tokenState.WaitingForCloseCondition);
@@ -190,7 +190,7 @@ public class RTokenList {
                             {
                                 tokenState.Pop();
                                 tokenState.Push(RTokenList.tokenState.WaitingForEndScript);
-                                if (token.text == "{")
+                                if (token.Lexeme.Text == "{")
                                 {
                                     isScriptEnclosedByCurlyBrackets.Push(true);  // script will terminate with '}'
                                 }
@@ -203,7 +203,7 @@ public class RTokenList {
                         }
                     case RTokenList.tokenState.WaitingForEndScript:
                         {
-                            if (token.tokentype == RToken.TokenType.RNewLine && statementContainsElement && numOpenBrackets.Peek() == 0 && !RToken.IsOperatorUserDefined(lexemePrev) && !(RToken.IsOperatorReserved(lexemePrev) && !(lexemePrev == "~")))
+                            if (token.tokentype == RToken.TokenType.RNewLine && statementContainsElement && numOpenBrackets.Peek() == 0 && !lexemePrev.IsOperatorUserDefined && !(lexemePrev.IsOperatorReserved && !(lexemePrev.Text == "~")))
                             {                  // if statement contains at least one R element (i.e. not just spaces, comments, or newlines)
                                                // if there are no open brackets
                                                // if line doesn't end in a user-defined operator
@@ -213,7 +213,7 @@ public class RTokenList {
                                 statementContainsElement = false;
                             }
 
-                            if (token.tokentype == RToken.TokenType.REndStatement && isScriptEnclosedByCurlyBrackets.Peek() == false && string.IsNullOrEmpty(lexemeNext))
+                            if (token.tokentype == RToken.TokenType.REndStatement && isScriptEnclosedByCurlyBrackets.Peek() == false && string.IsNullOrEmpty(lexemeNext.Text))
                             {
                                 token.tokentype = RToken.TokenType.REndScript;
                             }
@@ -239,14 +239,14 @@ public class RTokenList {
             // Edge case: if the script has ended and there are no more R elements to process, 
             // then ensure that only formatting lexemes (i.e. spaces, newlines or comments) follow
             // the script's final statement.
-            if (token.tokentype == RToken.TokenType.REndScript && string.IsNullOrEmpty(lexemeNext))
+            if (token.tokentype == RToken.TokenType.REndScript && string.IsNullOrEmpty(lexemeNext.Text))
             {
                 for (int nextPos = pos + 1; nextPos <= lexemes.Count - 1; nextPos++)
                 {
                     lexemeCurrent = lexemes[nextPos];
 
-                    token = new RToken("", lexemeCurrent, "", false, false, scriptPos);
-                    scriptPos += (uint)lexemeCurrent.Length;
+                    token = new RToken(new RLexeme(""), lexemeCurrent, new RLexeme(""), false, false, scriptPos);
+                    scriptPos += (uint)lexemeCurrent.Text.Length;
 
                     switch (token.tokentype)
                     {
