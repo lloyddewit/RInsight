@@ -3,7 +3,9 @@
 namespace RInsight;
 
 /// <summary>
-/// TODO
+/// Represents a potential R lexeme (a string of characters that represents a valid R element).
+/// The class includes a set of public properties that identify the type of lexeme; and whether
+/// the lexeme is valid or invalid.
 /// </summary>
 public class RLexeme
 {
@@ -260,11 +262,10 @@ public class RLexeme
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if <paramref name="lexeme"/> is a valid lexeme (either partial or 
-    ///             complete), else returns false.
-    ///             </summary>
+    /// <summary>   Returns true if this lexeme is a valid lexeme (either partial or  complete), 
+    ///             else returns false. </summary>
     /// 
-    /// <returns>   True if <paramref name="lexeme"/> is a valid lexeme, else false. </returns>
+    /// <returns>   True if this lexeme is a valid lexeme, else false. </returns>
     /// --------------------------------------------------------------------------------------------
     private bool _IsValidLexeme()
     {
@@ -287,19 +288,18 @@ public class RLexeme
 
         // if string is not a valid lexeme ...
         if (Regex.IsMatch(Text, @".+\n$") &&
-                !(Text == "\r\n" || _IsConstantString()) ||   // >1 char and ends in newline
-                Regex.IsMatch(Text, @".+\r$") ||           // >1 char and ends in carriage return
-                Regex.IsMatch(Text, "^%.*%.+"))
-        { // a user-defined operator followed by another character
+                !(Text == "\r\n" || _IsConstantString()) ||  // >1 char and ends in newline
+                Regex.IsMatch(Text, @".+\r$") ||             // >1 char and ends in carriage return
+                Regex.IsMatch(Text, "^%.*%.+")) // a user-defined operator followed by another char
+        { 
             return false;
         }
 
         // if string is a valid lexeme ...
-        if (_IsSyntacticName() || // syntactic name or reserved word
-                _IsOperatorReserved() || _IsOperatorBrackets() ||
-                Text == "<<" || _IsNewLine() || Text == "," || Text == ";" ||
-                _IsBracket() || _IsSequenceOfSpaces() || _IsOperatorUserDefined() ||
-                _IsComment())
+        if (_IsSyntacticName() 
+            || _IsOperatorReserved() || _IsOperatorBrackets() || _IsOperatorUserDefined() 
+            || Text == "<<" || _IsNewLine() || Text == "," || Text == ";" 
+            || _IsBracket() || _IsSequenceOfSpaces() || _IsComment())
         {
             return true;
         }

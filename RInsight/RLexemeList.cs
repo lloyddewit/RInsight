@@ -1,17 +1,20 @@
 ﻿namespace RInsight;
 
 /// <summary>
-/// TODO
+/// Represents an R script as a list of R lexemes. Each lexeme is a string of characters that 
+/// represents a valid R element (identifier, operator, keyword, seperator, bracket etc.).
 /// </summary>
 public class RLexemeList {
 
+    /// <summary>
+    /// List of R lexemes    
+    /// </summary>
     public List<RLexeme> Lexemes { get; }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns <paramref name="script"/> as a list of its constituent lexemes. 
-    ///             A lexeme is a string of characters that represents a valid R element 
-    ///             (identifier, operator, keyword, seperator, bracket etc.). A lexeme does not 
-    ///             include any type information.
+    /// <summary>   Generates a list of R lexemes from <paramref name="script"/>. 
+    ///             Each lexeme is a string of characters that represents a valid R element 
+    ///             (identifier, operator, keyword, seperator, bracket etc.). 
     ///             <para>
     ///             This function identifies lexemes using a technique known as 'longest match' 
     ///             or 'maximal munch'. It keeps adding characters to the lexeme one at a time 
@@ -33,13 +36,13 @@ public class RLexemeList {
 
         foreach (char lexemeChar in script)
         {
-            // we keep adding characters to the lexeme, one at a time, until we reach a character that 
-            // would make the lexeme invalid.
+            // we keep adding characters to the lexeme, one at a time, until we reach a character
+            // that would make the lexeme invalid.
             // Second part of condition is edge case for nested operator brackets (see note below).
             var lexemeTextExpanded = new RLexeme(lexemeText + lexemeChar);
             if (lexemeTextExpanded.IsValid &&
-                !(lexemeTextExpanded.Text == "]]" &&
-                  (bracketStack.Count < 1 || bracketStack.Peek())))
+                !(lexemeTextExpanded.Text == "]]" 
+                  && (bracketStack.Count < 1 || bracketStack.Peek())))
             {
                 lexemeText += lexemeChar;
                 continue;
@@ -66,7 +69,8 @@ public class RLexemeList {
                     {
                         if (bracketStack.Count < 1)
                         {
-                            throw new Exception("Closing bracket detected ('" + lexemeText + "') with no corresponding open bracket.");
+                            throw new Exception("Closing bracket detected ('" + lexemeText 
+                                                + "') with no corresponding open bracket.");
                         }
                         bracketStack.Pop();
                         break;
@@ -77,6 +81,13 @@ public class RLexemeList {
             Lexemes.Add(new RLexeme(lexemeText));
             lexemeText = lexemeChar.ToString();
         }
-        Lexemes.Add(new RLexeme(lexemeText));
+        // add the final lexeme to the list
+        var finalLexeme = new RLexeme(lexemeText);
+        if (!finalLexeme.IsValid)
+        {
+            throw new Exception("Final lexeme ('" + finalLexeme.Text 
+                                + "') is not a valid lexeme.");
+        }
+        Lexemes.Add(finalLexeme);
     }
 }
