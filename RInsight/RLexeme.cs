@@ -13,10 +13,6 @@ public class RLexeme
     /// <summary> The text associated with the lexeme. </summary>
     public string Text { get; }
 
-    /// <summary> True if this lexeme is a valid parameter for a binary operator (an identifier
-    ///           or a constant).</summary>
-    public bool IsBinaryOperatorParameter => _IsBinaryOperatorParameter();
-
     /// <summary> True if this lexeme is a round or curly bracket.</summary>
     public bool IsBracket => _IsBracket();
 
@@ -44,6 +40,14 @@ public class RLexeme
     ///           return.</summary>
     public bool IsNewLine => _IsNewLine();
 
+    /// <summary> True if this lexeme is a valid left-hand parameter for a binary operator 
+    ///           (an identifier or a constant).</summary>
+    public bool IsOperatorBinaryParameterLeft => _IsOperatorBinaryParameterLeft();
+
+    /// <summary> True if this lexeme is a valid right-hand parameter for a binary operator 
+    ///           (an identifier or a constant).</summary>
+    public bool IsOperatorBinaryParameterRight => _IsOperatorBinaryParameterRight();
+
     /// <summary> True if this lexeme is a bracket operator ("[" or "[[").</summary>
     public bool IsOperatorBrackets => _IsOperatorBrackets();
 
@@ -57,6 +61,10 @@ public class RLexeme
     /// <summary> True if this lexeme is a complete or partial user-defined operator (e.g. "%>%").
     /// </summary>
     public bool IsOperatorUserDefined => _IsOperatorUserDefined();
+
+    /// <summary> True if this lexeme is a complete or partial user-defined operator (e.g. "%>%").
+    /// </summary>
+    public bool IsOperatorUserDefinedComplete => _IsOperatorUserDefinedComplete();
 
     /// <summary> True if this lexeme is sequence of spaces (and no other characters).</summary>
     public bool IsSequenceOfSpaces => _IsSequenceOfSpaces();
@@ -85,18 +93,6 @@ public class RLexeme
     public RLexeme(string text)
     {
         Text = text;
-    }
-
-    /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns true if this lexeme's text is a valid parameter for a binary 
-    ///             operator, else returns false.</summary>
-    /// 
-    /// <returns>   True if this lexeme's text is a valid parameter for a binary operator, 
-    ///             else returns false.</returns>
-    /// --------------------------------------------------------------------------------------------
-    private bool _IsBinaryOperatorParameter()
-    {
-        return Regex.IsMatch(Text, @"[a-zA-Z0-9_\.)\]]$") || _IsConstantString();
     }
 
     /// --------------------------------------------------------------------------------------------
@@ -182,6 +178,30 @@ public class RLexeme
     }
 
     /// --------------------------------------------------------------------------------------------
+    /// <summary>   Returns true if this lexeme's text is a valid left-hand parameter for a binary 
+    ///             operator, else returns false.</summary>
+    /// 
+    /// <returns>   True if this lexeme's text is a valid left-hand parameter for a binary operator, 
+    ///             else returns false.</returns>
+    /// --------------------------------------------------------------------------------------------
+    private bool _IsOperatorBinaryParameterLeft()
+    {
+        return Regex.IsMatch(Text, @"[a-zA-Z0-9_\.)\]]$") || _IsConstantString();
+    }
+
+    /// --------------------------------------------------------------------------------------------
+    /// <summary>   Returns true if this lexeme's text is a valid right-hand parameter for a binary 
+    ///             operator, else returns false.</summary>
+    /// 
+    /// <returns>   True if this lexeme's text is a valid right-hand parameter for a binary operator, 
+    ///             else returns false.</returns>
+    /// --------------------------------------------------------------------------------------------
+    private bool _IsOperatorBinaryParameterRight()
+    {
+        return Regex.IsMatch(Text, @"^[a-zA-Z0-9_\.(\+\-\!~]") || _IsConstantString();
+    }
+
+    /// --------------------------------------------------------------------------------------------
     /// <summary>   Returns true if this lexeme's text is a bracket operator, else returns 
     ///             false.</summary>
     /// 
@@ -232,6 +252,18 @@ public class RLexeme
     private bool _IsOperatorUserDefined()
     {
         return Regex.IsMatch(Text, "^%.*");
+    }
+
+    /// --------------------------------------------------------------------------------------------
+    /// <summary>   Returns true if this lexeme's text is a complete user-defined operator, else 
+    ///             returns false.</summary>
+    /// 
+    /// <returns>   True if this lexeme's text is a complete user-defined operator, else returns 
+    ///             false.</returns>
+    /// --------------------------------------------------------------------------------------------
+    private bool _IsOperatorUserDefinedComplete()
+    {
+        return Regex.IsMatch(Text, "^%.*%$");
     }
 
     /// --------------------------------------------------------------------------------------------

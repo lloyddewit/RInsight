@@ -1,16 +1,15 @@
-﻿using Microsoft.VisualBasic;
-using System.Text.RegularExpressions;
-
-namespace RInsight;
+﻿namespace RInsight;
 
 /// <summary>
 /// TODO
 /// </summary>
-public class RToken {
+public class RToken
+{
 
     /// <summary>   The different types of R element (function name, key word, comment etc.) 
     ///             that the token may represent. </summary>
-    public enum TokenType {
+    public enum TokenType
+    {
         RSyntacticName,
         RFunctionName,
         RKeyWord,
@@ -31,7 +30,7 @@ public class RToken {
     }
 
     /// <summary>   The token's children. </summary>
-    public List<RToken> childTokens = new ();
+    public List<RToken> childTokens = new();
 
     /// <summary>   The lexeme associated with the token. </summary>
     public RLexeme Lexeme;
@@ -64,7 +63,8 @@ public class RToken {
     /// <param name="textNew">    The lexeme to associate with the token. </param>
     /// <param name="tokenTypeNew">  The token type (function name, key word, comment etc.). </param>
     /// --------------------------------------------------------------------------------------------
-    public RToken(RLexeme lexeme, TokenType tokenTypeNew) {
+    public RToken(RLexeme lexeme, TokenType tokenTypeNew)
+    {
         Lexeme = lexeme;
         tokentype = tokenTypeNew;
     }
@@ -160,20 +160,18 @@ public class RToken {
         }
         else if (lexemeCurrent.IsOperatorUnary &&
                    (string.IsNullOrEmpty(lexemePrev.Text) ||
-                    !lexemePrev.IsBinaryOperatorParameter ||
+                    !lexemePrev.IsOperatorBinaryParameterLeft ||
                     !lexemePrevOnSameLine))
         {
             tokentype = TokenType.ROperatorUnaryRight;      // unary right operator (e.g. '!x')
         }
         else if (lexemeCurrent.Text == "~" &&
-                   (string.IsNullOrEmpty(lexemeNext.Text) ||
-                    !lexemeNextOnSameLine ||
-                    !(Regex.IsMatch(lexemeNext.Text, @"^[a-zA-Z0-9_\.(\+\-\!~]") ||
-                    lexemeNext.IsBinaryOperatorParameter)))
+                 lexemePrev.IsOperatorBinaryParameterLeft &&
+                 (!lexemeNext.IsOperatorBinaryParameterRight || !lexemeNextOnSameLine))
         {
             tokentype = TokenType.ROperatorUnaryLeft;                 // unary left operator (e.g. x~)
         }
-        else if ((lexemeCurrent.IsOperatorReserved) || Regex.IsMatch(lexemeCurrent.Text, "^%.*%$"))
+        else if (lexemeCurrent.IsOperatorReserved || lexemeCurrent.IsOperatorUserDefinedComplete)
         {
             tokentype = TokenType.ROperatorBinary;    // binary operator (e.g. '+')
         }
@@ -190,11 +188,14 @@ public class RToken {
     /// 
     /// <returns>   A clone of this object. </returns>
     /// --------------------------------------------------------------------------------------------
-    public RToken CloneMe() {
+    public RToken CloneMe()
+    {
         var token = new RToken(Lexeme, tokentype);
 
-        foreach (RToken clsTokenChild in childTokens) {
-            if (clsTokenChild is null) {
+        foreach (RToken clsTokenChild in childTokens)
+        {
+            if (clsTokenChild is null)
+            {
                 throw new Exception("Token has illegal empty child.");
             }
             token.childTokens.Add(clsTokenChild.CloneMe());
