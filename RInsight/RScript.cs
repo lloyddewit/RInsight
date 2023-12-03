@@ -70,7 +70,7 @@ public class RScript {
         int iPos = 0;
         var dctAssignments = new Dictionary<string, RStatement>();
         while (iPos < lstTokens.Count) {
-            uint iScriptPos = lstTokens[iPos].scriptPos;
+            uint iScriptPos = lstTokens[iPos].ScriptPos;
             var clsStatement = new RStatement(lstTokens, ref iPos, dctAssignments);
             statements.Add(iScriptPos, clsStatement);
 
