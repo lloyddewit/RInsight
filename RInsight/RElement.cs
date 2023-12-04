@@ -33,7 +33,7 @@ public class RElement
     {
         strTxt = clsToken.Lexeme.Text;
         bBracketed = bBracketedNew;
-        strPrefix = strPackagePrefix + (clsToken.ChildTokens.Count > 0 && clsToken.ChildTokens[0].Tokentype == RToken.TokenType.RPresentation ? clsToken.ChildTokens[0].Lexeme.Text : "");
+        strPrefix = strPackagePrefix + (clsToken.ChildTokens.Count > 0 && clsToken.ChildTokens[0].TokenType == RToken.TokenTypes.RPresentation ? clsToken.ChildTokens[0].Lexeme.Text : "");
 
     }
 

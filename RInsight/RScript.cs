@@ -61,17 +61,18 @@ public class RScript {
             return;
         }
 
-        var lstTokens = new RTokenList(strInput).Tokens;
+        var tokenList = new RTokenList(strInput).Tokens;
 
-        if (lstTokens is null) {
+        if (tokenList is null) {
             return;
         }
 
         int iPos = 0;
         var dctAssignments = new Dictionary<string, RStatement>();
-        while (iPos < lstTokens.Count) {
-            uint iScriptPos = lstTokens[iPos].ScriptPos;
-            var clsStatement = new RStatement(lstTokens, ref iPos, dctAssignments);
+        while (iPos < tokenList.Count-1) {
+            uint iScriptPos = tokenList[iPos].ScriptPos;
+            var clsStatement = new RStatement(tokenList[iPos], tokenList[iPos+1], dctAssignments);
+            iPos += 2;
             statements.Add(iScriptPos, clsStatement);
 
             // if the value of an assigned element is new/updated

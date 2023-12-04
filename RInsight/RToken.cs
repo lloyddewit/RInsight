@@ -8,7 +8,7 @@ public class RToken
 
     /// <summary>   The different types of R element (function name, key word, comment etc.) 
     ///             that the token may represent. </summary>
-    public enum TokenType
+    public enum TokenTypes
     {
         RSyntacticName,
         RFunctionName,
@@ -31,7 +31,7 @@ public class RToken
 
     // TODO only allow RTokenList to change this list?
     /// <summary>   The token's children. </summary>
-    public List<RToken> ChildTokens { get; set; }
+    public List<RToken> ChildTokens { get; internal set; }
 
     /// <summary>   The lexeme associated with the token. </summary>
     public RLexeme Lexeme { get; }
@@ -40,7 +40,7 @@ public class RToken
     public uint ScriptPos { get; }
 
     /// <summary>   The token type (function name, key word, comment etc.).  </summary>
-    public TokenType Tokentype { get; }
+    public TokenTypes TokenType { get; }
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
@@ -55,12 +55,12 @@ public class RToken
     /// <param name="textNew">    The lexeme to associate with the token. </param>
     /// <param name="tokenType">  The token type (function name, key word, comment etc.). </param>
     /// --------------------------------------------------------------------------------------------
-    public RToken(RLexeme lexeme, TokenType tokenType)
+    public RToken(RLexeme lexeme, TokenTypes tokenType)
     {
         ChildTokens = new List<RToken>();
         Lexeme = lexeme;
         ScriptPos = 0;
-        Tokentype = tokenType;
+        TokenType = tokenType;
     }
 
 
@@ -101,26 +101,26 @@ public class RToken
 
         if (lexemeCurrent.IsKeyWord)
         {
-            Tokentype = TokenType.RKeyWord;                // reserved key word (e.g. if, else etc.)
+            TokenType = TokenTypes.RKeyWord;                // reserved key word (e.g. if, else etc.)
         }
         else if (lexemeCurrent.IsSyntacticName)
         {
             if (lexemeNext.Text == "(" && lexemeNextOnSameLine)
             {
-                Tokentype = TokenType.RFunctionName;       // function name
+                TokenType = TokenTypes.RFunctionName;       // function name
             }
             else
             {
-                Tokentype = TokenType.RSyntacticName;      // syntactic name
+                TokenType = TokenTypes.RSyntacticName;      // syntactic name
             }
         }
         else if (lexemeCurrent.IsComment)
         {
-            Tokentype = TokenType.RComment;             // comment (starts with '#*')
+            TokenType = TokenTypes.RComment;             // comment (starts with '#*')
         }
         else if (lexemeCurrent.IsConstantString)
         {
-            Tokentype = TokenType.RConstantString;        // string literal (starts with single or double quote)
+            TokenType = TokenTypes.RConstantString;        // string literal (starts with single or double quote)
         }
         else if (lexemeCurrent.IsNewLine)
         {
@@ -129,61 +129,61 @@ public class RToken
                 || lexemePrev.IsOperatorUserDefined 
                 || (lexemePrev.IsOperatorReserved && lexemePrev.Text != "~"))
             {
-                Tokentype = TokenType.RNewLine;               // new line (e.g. '\n')
+                TokenType = TokenTypes.RNewLine;               // new line (e.g. '\n')
             }
             else
             {
-                Tokentype = TokenType.REndStatement;
+                TokenType = TokenTypes.REndStatement;
             }
         }
         else if (lexemeCurrent.Text == ";")
         {
-            Tokentype = TokenType.REndStatement;                    // end statement
+            TokenType = TokenTypes.REndStatement;                    // end statement
         }
         else if (lexemeCurrent.Text == ",")
         {
-            Tokentype = TokenType.RSeparator;                    // parameter separator
+            TokenType = TokenTypes.RSeparator;                    // parameter separator
         }
         else if (lexemeCurrent.IsSequenceOfSpaces)
         {     // sequence of spaces (needs to be after separator check, 
-            Tokentype = TokenType.RSpace;              // else linefeed is recognised as space)
+            TokenType = TokenTypes.RSpace;              // else linefeed is recognised as space)
         }
         else if (lexemeCurrent.IsBracket)
         {              // bracket (e.g. '{')
             if (lexemeCurrent.Text == "}")
             {
                 //todo Tokentype = TokenType.REndScript;
-                Tokentype = TokenType.REndStatement;
+                TokenType = TokenTypes.REndStatement;
             }
             else
             {
-                Tokentype = TokenType.RBracket;
+                TokenType = TokenTypes.RBracket;
             }
         }
         else if (lexemeCurrent.IsOperatorBrackets)
         {
-            Tokentype = TokenType.ROperatorBracket;      // bracket operator (e.g. '[')
+            TokenType = TokenTypes.ROperatorBracket;      // bracket operator (e.g. '[')
         }
         else if (lexemeCurrent.IsOperatorUnary &&
                    (string.IsNullOrEmpty(lexemePrev.Text) ||
                     !lexemePrev.IsOperatorBinaryParameterLeft ||
                     !lexemePrevOnSameLine))
         {
-            Tokentype = TokenType.ROperatorUnaryRight;      // unary right operator (e.g. '!x')
+            TokenType = TokenTypes.ROperatorUnaryRight;      // unary right operator (e.g. '!x')
         }
         else if (lexemeCurrent.Text == "~" &&
                  lexemePrev.IsOperatorBinaryParameterLeft &&
                  (!lexemeNext.IsOperatorBinaryParameterRight || !lexemeNextOnSameLine))
         {
-            Tokentype = TokenType.ROperatorUnaryLeft;                 // unary left operator (e.g. x~)
+            TokenType = TokenTypes.ROperatorUnaryLeft;                 // unary left operator (e.g. x~)
         }
         else if (lexemeCurrent.IsOperatorReserved || lexemeCurrent.IsOperatorUserDefinedComplete)
         {
-            Tokentype = TokenType.ROperatorBinary;    // binary operator (e.g. '+')
+            TokenType = TokenTypes.ROperatorBinary;    // binary operator (e.g. '+')
         }
         else
         {
-            Tokentype = TokenType.RInvalid;
+            TokenType = TokenTypes.RInvalid;
         }
     }
 
@@ -196,7 +196,7 @@ public class RToken
     /// --------------------------------------------------------------------------------------------
     public RToken CloneMe()
     {
-        var token = new RToken(Lexeme, Tokentype);
+        var token = new RToken(Lexeme, TokenType);
 
         foreach (RToken clsTokenChild in ChildTokens)
         {
