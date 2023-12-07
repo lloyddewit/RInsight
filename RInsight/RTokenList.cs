@@ -337,7 +337,7 @@ public class RTokenList {
         while (iPos < tokenList.Count)
         {
             // create list of tokens for this statement
-            uint statementScriptPos = tokenList[iPos].ScriptPos;
+            uint statementScriptPos = tokenList[iPos].ScriptPosStartStatement;
             var statementTokens = new List<RToken>();
             while (iPos < tokenList.Count)
             {
@@ -431,7 +431,7 @@ public class RTokenList {
                     {
                         if (string.IsNullOrEmpty(strPrefix))
                         {
-                            prefixScriptPos = clsToken.ScriptPos;
+                            prefixScriptPos = clsToken.ScriptPosStartStatement;
                         }
                         strPrefix += clsToken.Lexeme.Text;                        
                         break;
@@ -456,7 +456,7 @@ public class RTokenList {
         // with a new line or '}')
         if (!string.IsNullOrEmpty(strPrefix))
         {
-            clsToken = new RToken(new RLexeme(""), prefixScriptPos, RToken.TokenTypes.RInvalid);
+            clsToken = new RToken(new RLexeme(""), prefixScriptPos, RToken.TokenTypes.REmpty);
             lstTokensNew.Add(clsToken);
 
             // add a new end statement token that contains the presentation information
