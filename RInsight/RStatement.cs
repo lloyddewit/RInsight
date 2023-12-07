@@ -526,6 +526,7 @@ public class RStatement
                 }
 
             case RToken.TokenTypes.REndStatement:
+            case RToken.TokenTypes.RInvalid:
                 {
                     return null;
                 }

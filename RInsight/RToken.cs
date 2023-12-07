@@ -26,7 +26,7 @@ public class RToken
         ROperatorBinary,
         ROperatorBracket,
         RPresentation,
-        RInvalid
+        RInvalid // todo change name to REmpty?
     }
 
     // TODO only allow RTokenList to change this list?
@@ -38,6 +38,11 @@ public class RToken
 
     /// <summary>   The position of the lexeme in the script from which the lexeme was extracted. </summary>
     public uint ScriptPos { get; }
+
+    /// <summary>
+    ///  todo
+    /// </summary>
+    public uint ScriptPosStartStatement => GetPosStartStatement();
 
     /// <summary>   The token type (function name, key word, comment etc.).  </summary>
     public TokenTypes TokenType { get; }
@@ -55,11 +60,11 @@ public class RToken
     /// <param name="textNew">    The lexeme to associate with the token. </param>
     /// <param name="tokenType">  The token type (function name, key word, comment etc.). </param>
     /// --------------------------------------------------------------------------------------------
-    public RToken(RLexeme lexeme, TokenTypes tokenType)
+    public RToken(RLexeme lexeme, uint scriptPos, TokenTypes tokenType)
     {
         ChildTokens = new List<RToken>();
         Lexeme = lexeme;
-        ScriptPos = 0;
+        ScriptPos = scriptPos;
         TokenType = tokenType;
     }
 
@@ -183,7 +188,7 @@ public class RToken
         }
         else
         {
-            TokenType = TokenTypes.RInvalid;
+            TokenType = TokenTypes.RInvalid; // todo throw exception here instead?
         }
     }
 
@@ -196,7 +201,7 @@ public class RToken
     /// --------------------------------------------------------------------------------------------
     public RToken CloneMe()
     {
-        var token = new RToken(Lexeme, TokenType);
+        var token = new RToken(Lexeme, ScriptPos, TokenType);
 
         foreach (RToken clsTokenChild in ChildTokens)
         {
@@ -208,6 +213,22 @@ public class RToken
         }
 
         return token;
+    }
+
+    /// <summary>
+    /// todo
+    /// </summary>
+    /// <returns></returns>
+    private uint GetPosStartStatement()
+    {
+        uint posStartStatement = ScriptPos;
+
+        foreach (RToken token in ChildTokens)
+        {
+            posStartStatement = Math.Min(posStartStatement, token.GetPosStartStatement());
+        }
+
+        return posStartStatement;
     }
 
 }

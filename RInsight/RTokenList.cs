@@ -50,16 +50,16 @@ public class RTokenList {
             return;
         }
 
-        CreateTokenList(script);
-        CreateTokenTree();
+        List<RToken> tokenList = GetTokenList(script);
+        Tokens = GetTokenTreeList(tokenList);
     }
 
-    private void CreateTokenList(string script)
+    private List<RToken> GetTokenList(string script)
     {
         var lexemes = new RLexemeList(script).Lexemes;
         if (lexemes.Count == 0)
         {
-            return;
+            return new List<RToken>();
         }
 
         var lexemePrev = new RLexeme("");
@@ -79,6 +79,7 @@ public class RTokenList {
         var tokenState = new Stack<tokenState>();
         tokenState.Push(RTokenList.tokenState.WaitingForStartScript);
 
+        var tokenList = new List<RToken>();
         uint scriptPos = 0U;
         for (int pos = 0, loopTo = lexemes.Count - 1; pos <= loopTo; pos++)
         {
@@ -268,7 +269,7 @@ public class RTokenList {
             }
 
             // add new token to token list
-            Tokens.Add(token);
+            tokenList.Add(token);
 
             // Edge case: if the script has ended and there are no more R elements to process, 
             // then ensure that only formatting lexemes (i.e. spaces, newlines or comments) follow
@@ -302,15 +303,14 @@ public class RTokenList {
                             }
                     }
                     // add new token to token list
-                    Tokens.Add(token);
-                }
-                return;
+                    tokenList.Add(token);
+                }                
             }
         }
-
+        return tokenList;
     }
 
-    private void CreateTokenTree()
+    private List<RToken> GetTokenTreeList(List<RToken> tokenList)
     {
         operatorPrecedences[0] = new string[] { "::", ":::" };
         operatorPrecedences[1] = new string[] { "$", "@" };
@@ -332,37 +332,47 @@ public class RTokenList {
         operatorPrecedences[iOperatorsLeftAssignment2] = new string[] { "=" };
         operatorPrecedences[18] = new string[] { "?", "??" };
 
-        // create list of tokens for this statement
-        var lstStatementTokens = new List<RToken>();
+        var tokenTreeList = new List<RToken>();
         int iPos = 0;
-        while (iPos < Tokens.Count)
+        while (iPos < tokenList.Count)
         {
-            lstStatementTokens.Add(Tokens[iPos]);
-            // we don't add this termination condition to the while statement because we also want the token that terminates the statement 
-            //todo if (lstTokens[iPos].Tokentype == RToken.TokenType.REndStatement || lstTokens[iPos].Tokentype == RToken.TokenType.REndScript)
-            if (Tokens[iPos].TokenType == RToken.TokenTypes.REndStatement)
+            // create list of tokens for this statement
+            uint statementScriptPos = tokenList[iPos].ScriptPos;
+            var statementTokens = new List<RToken>();
+            while (iPos < tokenList.Count)
             {
-                iPos += 1;                                                              // to be part of the statement's list of tokens
-                break;
+                statementTokens.Add(tokenList[iPos]);
+                iPos++;
+                // we don't add this termination condition to the while statement because we also want the token that terminates the statement 
+                //todo if (lstTokens[iPos].Tokentype == RToken.TokenType.REndStatement || lstTokens[iPos].Tokentype == RToken.TokenType.REndScript)
+                if (tokenList[iPos - 1].TokenType == RToken.TokenTypes.REndStatement)
+                {
+                    break;
+                }
             }
-            iPos += 1;
-        }
 
-        // restructure the list into a token tree
-        var lstTokenPresentation = GetLstPresentation(lstStatementTokens, 0);
-        int argiPos = 0;
-        var lstTokenBrackets = GetLstTokenBrackets(lstTokenPresentation, ref argiPos);
-        var lstTokenFunctionBrackets = GetLstTokenFunctionBrackets(lstTokenBrackets);
-        int argiPos1 = 0;
-        var lstTokenFunctionCommas = GetLstTokenFunctionCommas(lstTokenFunctionBrackets, ref argiPos1);
-        var lstTokenTree = GetLstTokenOperators(lstTokenFunctionCommas);
+            // restructure the list into a token tree
+            var lstTokenPresentation = GetLstPresentation(statementTokens, 0);
+            int argiPos = 0;
+            var lstTokenBrackets = GetLstTokenBrackets(lstTokenPresentation, ref argiPos);
+            var lstTokenFunctionBrackets = GetLstTokenFunctionBrackets(lstTokenBrackets);
+            int argiPos1 = 0;
+            var lstTokenFunctionCommas = GetLstTokenFunctionCommas(lstTokenFunctionBrackets, ref argiPos1);
+            var lstTokenTree = GetLstTokenOperators(lstTokenFunctionCommas);
 
-        // if the tree does not include at least one token, then raise development error
-        if (lstTokenTree.Count < 1)
-        {
-            throw new Exception("The token tree must contain at least one token.");
+            if (lstTokenTree.Count == 0
+                || (lstTokenTree.Count == 1 && iPos < tokenList.Count)
+                || lstTokenTree.Count > 2)
+            {
+                throw new Exception("The token tree for a statement must contain a single token followed by an endStatement token. Special case: for the last staement in the script, an endStatement token is optional.");
+            }
+            tokenTreeList.Add(lstTokenTree[0].CloneMe());
+            if (lstTokenTree.Count > 1)
+            {
+                tokenTreeList.Add(lstTokenTree[1].CloneMe());
+            }
         }
-        Tokens = lstTokenTree;
+        return tokenTreeList;
     }
 
     /// --------------------------------------------------------------------------------------------
@@ -377,7 +387,7 @@ public class RTokenList {
     /// </para><para>
     /// For example, the list of tokens representing the following block of script:
     /// </para><code>
-    /// # comment1 <para>
+    /// # comment1\n <para>
     /// a =b # comment2 </para></code><para>
     /// </para><para>
     /// Will be structured as:</para><code><para>
@@ -407,6 +417,7 @@ public class RTokenList {
         var lstTokensNew = new List<RToken>();
         RToken clsToken;
         string strPrefix = "";
+        uint prefixScriptPos = 0;
 
         while (iPos < lstTokens.Count)
         {
@@ -418,7 +429,11 @@ public class RTokenList {
                 case RToken.TokenTypes.RComment:
                 case RToken.TokenTypes.RNewLine:
                     {
-                        strPrefix += clsToken.Lexeme.Text;
+                        if (string.IsNullOrEmpty(strPrefix))
+                        {
+                            prefixScriptPos = clsToken.ScriptPos;
+                        }
+                        strPrefix += clsToken.Lexeme.Text;                        
                         break;
                     }
 
@@ -426,10 +441,11 @@ public class RTokenList {
                     {
                         if (!string.IsNullOrEmpty(strPrefix))
                         {
-                            clsToken.ChildTokens.Add(new RToken(new RLexeme(strPrefix), RToken.TokenTypes.RPresentation));
+                            clsToken.ChildTokens.Add(new RToken(new RLexeme(strPrefix), prefixScriptPos, RToken.TokenTypes.RPresentation));
                         }
                         lstTokensNew.Add(clsToken.CloneMe());
                         strPrefix = "";
+                        prefixScriptPos = 0;
                         break;
                     }
             }
@@ -440,9 +456,12 @@ public class RTokenList {
         // with a new line or '}')
         if (!string.IsNullOrEmpty(strPrefix))
         {
+            clsToken = new RToken(new RLexeme(""), prefixScriptPos, RToken.TokenTypes.RInvalid);
+            lstTokensNew.Add(clsToken);
+
             // add a new end statement token that contains the presentation information
-            clsToken = new RToken(new RLexeme(""), RToken.TokenTypes.REndStatement);
-            clsToken.ChildTokens.Add(new RToken(new RLexeme(strPrefix), RToken.TokenTypes.RPresentation));
+            clsToken = new RToken(new RLexeme(""), prefixScriptPos + (uint)strPrefix.Length, RToken.TokenTypes.REndStatement);
+            clsToken.ChildTokens.Add(new RToken(new RLexeme(strPrefix), prefixScriptPos, RToken.TokenTypes.RPresentation));
             lstTokensNew.Add(clsToken);
         }
 

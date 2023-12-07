@@ -69,9 +69,18 @@ public class RScript {
 
         int iPos = 0;
         var dctAssignments = new Dictionary<string, RStatement>();
-        while (iPos < tokenList.Count-1) {
-            uint iScriptPos = tokenList[iPos].ScriptPos;
-            var clsStatement = new RStatement(tokenList[iPos], tokenList[iPos+1], dctAssignments);
+        while (iPos < tokenList.Count) {
+            uint iScriptPos = tokenList[iPos].ScriptPosStartStatement;
+            RToken tokenEndStatement;
+            if (iPos + 1 < tokenList.Count)
+            {
+                tokenEndStatement = tokenList[iPos + 1];
+            }
+            else
+            {
+                tokenEndStatement = new RToken(new RLexeme(""), iScriptPos+1, RToken.TokenTypes.REndStatement);
+            }
+            var clsStatement = new RStatement(tokenList[iPos], tokenEndStatement, dctAssignments);
             iPos += 2;
             statements.Add(iScriptPos, clsStatement);
 
