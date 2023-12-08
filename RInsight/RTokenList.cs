@@ -50,6 +50,7 @@ public class RTokenList {
             new string[] { "?", "??" }
         };
 
+    /// --------------------------------------------------------------------------------------------
     /// <summary>
     /// A token is a string of characters that represent a valid R element, plus meta 
     /// data about the token type (identifier, operator, keyword, bracket etc.). 
@@ -57,9 +58,10 @@ public class RTokenList {
     /// <param name="script"> The R script to parse. This must be valid R according to the 
     /// R language specification at https://cran.r-project.org/doc/manuals/r-release/R-lang.html 
     /// (referenced 01 Feb 2021).</param>
+    /// --------------------------------------------------------------------------------------------
     public RTokenList(string script) 
     {        
-        if (string.IsNullOrEmpty(script))
+        if (script.Length == 0)
         {
             Tokens = new List<RToken>();
             return;
@@ -86,12 +88,14 @@ public class RTokenList {
         return tokens[posTokens + 1].CloneMe();
     }
 
+    /// --------------------------------------------------------------------------------------------
     /// <summary>
-    /// todo
+    /// todo refactor for key words
     /// </summary>
     /// <param name="script"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
+    /// --------------------------------------------------------------------------------------------
     private static List<RToken> GetTokenList(string script)
     {
         var lexemes = new RLexemeList(script).Lexemes;
@@ -100,9 +104,9 @@ public class RTokenList {
             return new List<RToken>();
         }
 
-        var lexemePrev = new RLexeme("");
-        var lexemeCurrent = new RLexeme("");
-        var lexemeNext = new RLexeme("");
+        RLexeme lexemePrev = new RLexeme("");
+        RLexeme lexemeCurrent = new RLexeme("");
+        RLexeme lexemeNext;
         bool lexemePrevOnSameLine = false;
         bool lexemeNextOnSameLine;
         bool statementContainsElement = false;
@@ -112,14 +116,14 @@ public class RTokenList {
         numOpenBrackets.Push(0);
 
         var isScriptEnclosedByCurlyBrackets = new Stack<bool>();
-        isScriptEnclosedByCurlyBrackets.Push(true);
+        isScriptEnclosedByCurlyBrackets.Push(true); // todo should we push true here?
 
         var tokenState = new Stack<tokenState>();
         tokenState.Push(RTokenList.tokenState.WaitingForStartScript);
 
         var tokenList = new List<RToken>();
         uint scriptPos = 0U;
-        for (int pos = 0, loopTo = lexemes.Count - 1; pos <= loopTo; pos++)
+        for (int pos = 0; pos < lexemes.Count; pos++)
         {
             if (numOpenBrackets.Count < 1)
             {
@@ -146,7 +150,7 @@ public class RTokenList {
             }
 
             lexemeCurrent = lexemes[pos];
-            statementContainsElement = statementContainsElement ? true : lexemeCurrent.IsElement;
+            statementContainsElement = statementContainsElement || lexemeCurrent.IsElement;
 
             // find next lexeme that represents an R element
             lexemeNext = new RLexeme("");
@@ -205,9 +209,11 @@ public class RTokenList {
             }
 
             // identify the token associated with the current lexeme and add the token to the list
-            token = new RToken(lexemePrev, lexemeCurrent, lexemeNext, lexemePrevOnSameLine, lexemeNextOnSameLine, scriptPos, numOpenBrackets.Peek() > 0, statementContainsElement);
+            bool statementHasOpenBrackets = numOpenBrackets.Peek() > 0;
+            token = new RToken(lexemePrev, lexemeCurrent, lexemeNext, 
+                               lexemePrevOnSameLine, lexemeNextOnSameLine, scriptPos,
+                               statementHasOpenBrackets, statementContainsElement);
             scriptPos += (uint)lexemeCurrent.Text.Length;
-            //todo
             if (token.TokenType == RToken.TokenTypes.REndStatement)
             {
                 statementContainsElement = false;
@@ -253,7 +259,10 @@ public class RTokenList {
                         }
                     case RTokenList.tokenState.WaitingForStartScript:
                         {
-                            if (!(token.TokenType == RToken.TokenTypes.RComment || token.TokenType == RToken.TokenTypes.RPresentation || token.TokenType == RToken.TokenTypes.RSpace || token.TokenType == RToken.TokenTypes.RNewLine))
+                            if (!(token.TokenType == RToken.TokenTypes.RComment 
+                                  || token.TokenType == RToken.TokenTypes.RPresentation 
+                                  || token.TokenType == RToken.TokenTypes.RSpace 
+                                  || token.TokenType == RToken.TokenTypes.RNewLine))
                             {
                                 tokenState.Pop();
                                 tokenState.Push(RTokenList.tokenState.WaitingForEndScript);
@@ -324,7 +333,8 @@ public class RTokenList {
                 {
                     lexemeCurrent = lexemes[nextPos];
 
-                    token = new RToken(new RLexeme(""), lexemeCurrent, new RLexeme(""), false, false, scriptPos, false, false);
+                    token = new RToken(new RLexeme(""), lexemeCurrent, new RLexeme(""), 
+                                       false, false, scriptPos, false, false);
                     scriptPos += (uint)lexemeCurrent.Text.Length;
 
                     switch (token.TokenType)
@@ -337,7 +347,8 @@ public class RTokenList {
                             }
                         default:
                             {
-                                throw new Exception("Only spaces, newlines and comments are allowed after the script ends.");
+                                throw new Exception("Only spaces, newlines and comments are " 
+                                                    + "allowed after the script ends.");
                             }
                     }
                     // add new token to token list
@@ -346,57 +357,6 @@ public class RTokenList {
             }
         }
         return tokenList;
-    }
-
-    /// <summary>
-    /// todo
-    /// </summary>
-    /// <param name="tokenList"></param>
-    /// <returns></returns>
-    /// <exception cref="Exception"></exception>
-    private static List<RToken> GetTokenTreeList(List<RToken> tokenList)
-    {
-        var tokenTreeList = new List<RToken>();
-        int pos = 0;
-        while (pos < tokenList.Count)
-        {
-            // create list of tokens for this statement
-            uint statementScriptPos = tokenList[pos].ScriptPosStartStatement;
-            var statementTokens = new List<RToken>();
-            while (pos < tokenList.Count)
-            {
-                statementTokens.Add(tokenList[pos]);
-                pos++;
-                // we don't add this termination condition to the while statement because we also want the token that terminates the statement 
-                //todo if (lstTokens[iPos].Tokentype == RToken.TokenType.REndStatement || lstTokens[iPos].Tokentype == RToken.TokenType.REndScript)
-                if (tokenList[pos - 1].TokenType == RToken.TokenTypes.REndStatement)
-                {
-                    break;
-                }
-            }
-
-            // restructure the list into a token tree
-            var tokenTreePresentation = GetTokenTreePresentation(statementTokens);
-            int treePos = 0;
-            var tokenTreeBrackets = GetTokenTreeBrackets(tokenTreePresentation, ref treePos);
-            var tokenTreeFunctionBrackets = GetTokenTreeFunctionBrackets(tokenTreeBrackets);
-            treePos = 0;
-            var tokenTreeFunctionCommas = GetTokenTreeFunctionCommas(tokenTreeFunctionBrackets, ref treePos);
-            var tokenTreeOperators = GetTokenTreeOperators(tokenTreeFunctionCommas);
-
-            if (tokenTreeOperators.Count == 0
-                || (tokenTreeOperators.Count == 1 && pos < tokenList.Count)
-                || tokenTreeOperators.Count > 2)
-            {
-                throw new Exception("The token tree for a statement must contain a single token followed by an endStatement token. Special case: for the last staement in the script, an endStatement token is optional.");
-            }
-            tokenTreeList.Add(tokenTreeOperators[0].CloneMe());
-            if (tokenTreeOperators.Count > 1)
-            {
-                tokenTreeList.Add(tokenTreeOperators[1].CloneMe());
-            }
-        }
-        return tokenTreeList;
     }
 
     /// --------------------------------------------------------------------------------------------
@@ -420,7 +380,7 @@ public class RTokenList {
     /// 
     /// <returns>   A token tree restructured for round brackets. </returns>
     /// --------------------------------------------------------------------------------------------
-    private static List<RToken> GetTokenTreeBrackets(List<RToken> tokens, ref int pos)
+    private static List<RToken> GetTokenTreeBrackets(List<RToken> tokens, ref int pos) // todo is pos needed?
     {
 
         if (tokens.Count <= 0)
@@ -526,7 +486,7 @@ public class RTokenList {
     /// 
     /// <returns>   A token tree restructured for function commas. </returns>
     /// --------------------------------------------------------------------------------------------
-    private static List<RToken> GetTokenTreeFunctionCommas(List<RToken> tokens, ref int pos, bool processingComma = false)
+    private static List<RToken> GetTokenTreeFunctionCommas(List<RToken> tokens, ref int pos, bool processingComma = false) // todo is pos needed?
     {
         var tokensNew = new List<RToken>();
         RToken token;
@@ -569,6 +529,61 @@ public class RTokenList {
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
+    /// todo
+    /// </summary>
+    /// <param name="tokenList"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
+    /// --------------------------------------------------------------------------------------------
+    private static List<RToken> GetTokenTreeList(List<RToken> tokenList)
+    {
+        var tokenTreeList = new List<RToken>();
+        int pos = 0;
+        while (pos < tokenList.Count)
+        {
+            // create list of tokens for this statement
+            var statementTokens = new List<RToken>();
+            while (pos < tokenList.Count)
+            {
+                statementTokens.Add(tokenList[pos]);
+                pos++;
+                // we don't add this termination condition to the while statement
+                //   because we also want the token that terminates the statement.
+                if (tokenList[pos - 1].TokenType == RToken.TokenTypes.REndStatement)
+                {
+                    break;
+                }
+            }
+
+            // restructure the list into a token tree
+            var tokenTreePresentation = GetTokenTreePresentation(statementTokens);
+            int treePos = 0;
+            var tokenTreeBrackets = GetTokenTreeBrackets(tokenTreePresentation, ref treePos);
+            var tokenTreeFunctionBrackets = GetTokenTreeFunctionBrackets(tokenTreeBrackets);
+            treePos = 0;
+            var tokenTreeFunctionCommas = GetTokenTreeFunctionCommas(tokenTreeFunctionBrackets,
+                                                                     ref treePos);
+            var tokenTreeOperators = GetTokenTreeOperators(tokenTreeFunctionCommas);
+
+            if (tokenTreeOperators.Count == 0
+                || (tokenTreeOperators.Count == 1 && pos < tokenList.Count)
+                || tokenTreeOperators.Count > 2)
+            {
+                throw new Exception("The token tree for a statement must contain a single token "
+                        + "followed by an endStatement token. Special case: for the last "
+                        + "statement in the script, an endStatement token is optional.");
+            }
+            tokenTreeList.Add(tokenTreeOperators[0].CloneMe());
+            if (tokenTreeOperators.Count > 1)
+            {
+                tokenTreeList.Add(tokenTreeOperators[1].CloneMe());
+            }
+        }
+        return tokenTreeList;
+    }
+
+    /// --------------------------------------------------------------------------------------------
+    /// <summary>
     /// Traverses the tree of tokens in <paramref name="tokens"/>. If one of the operators in 
     /// the <paramref name="posOperators"/> group is found, then the operator's parameters 
     /// (typically the tokens to the left and right of the operator) are made children of the 
@@ -589,7 +604,7 @@ public class RTokenList {
     /// 
     /// <returns>   A token tree restructured for the specified group of operators. </returns>
     /// --------------------------------------------------------------------------------------------
-    private static List<RToken> GetLstTokenOperatorGroup(List<RToken> tokens, int posOperators)
+    private static List<RToken> GetTokenTreeOperatorGroup(List<RToken> tokens, int posOperators)
     {
 
         if (tokens.Count < 1)
@@ -612,10 +627,10 @@ public class RTokenList {
             // that it has already been processed. This happens when the child is in the 
             // same precedence group as the parent but was processed first in accordance 
             // with the left to right rule (e.g. 'a/b*c').
-            if ((_operatorPrecedences[posOperators].Contains(token.Lexeme.Text) 
-                 || posOperators == _operatorsUserDefined && token.Lexeme.IsOperatorUserDefinedComplete) 
-                && (token.ChildTokens.Count == 0 
-                    || (token.ChildTokens.Count == 1 
+            if ((_operatorPrecedences[posOperators].Contains(token.Lexeme.Text)
+                 || posOperators == _operatorsUserDefined && token.Lexeme.IsOperatorUserDefinedComplete)
+                && (token.ChildTokens.Count == 0
+                    || (token.ChildTokens.Count == 1
                         && token.ChildTokens[0].TokenType == RToken.TokenTypes.RPresentation)))
             {
 
@@ -730,7 +745,7 @@ public class RTokenList {
             }
 
             // process the current token's children
-            token.ChildTokens = GetLstTokenOperatorGroup(token.CloneMe().ChildTokens, posOperators);
+            token.ChildTokens = GetTokenTreeOperatorGroup(token.CloneMe().ChildTokens, posOperators);
 
             tokenPrev = token.CloneMe();
             prevTokenProcessed = false;
@@ -774,7 +789,7 @@ public class RTokenList {
         {
 
             // restructure the tree for the next group of operators in the precedence list
-            tokensNew = GetLstTokenOperatorGroup(tokens, posOperators);
+            tokensNew = GetTokenTreeOperatorGroup(tokens, posOperators);
 
             // clone the new tree before restructuring for the next operator
             tokens = new List<RToken>();
