@@ -21,19 +21,40 @@ public class RTokenList {
     /// </summary>
     public List<RToken> Tokens { get; private set; }
 
+    // Constants for operator precedence groups that have special characteristics (e.g. must be unary)
+    private static readonly int _operatorsBrackets = 2;
+    private static readonly int _operatorsUnaryOnly = 4;
+    private static readonly int _operatorsUserDefined = 6;
+    private static readonly int _operatorsTilda = 14;
+    private static readonly int _operatorsRightAssignment = 15;
+    private static readonly int _operatorsLeftAssignment1 = 16;
+    private static readonly int _operatorsLeftAssignment2 = 17;
+
     /// <summary>   The relative precedence of the R operators. This is a two-dimensional array 
     ///             because the operators are stored in groups together with operators that 
     ///             have the same precedence.</summary>
-    private readonly string[][] _operatorPrecedences = new string[20][];
-
-    // Constants for operator precedence groups that have special characteristics (e.g. must be unary)
-    private readonly int _operatorsBrackets = 2;
-    private readonly int _operatorsUnaryOnly = 4;
-    private readonly int _operatorsUserDefined = 6;
-    private readonly int _operatorsTilda = 14;
-    private readonly int _operatorsRightAssignment = 15;
-    private readonly int _operatorsLeftAssignment1 = 16;
-    private readonly int _operatorsLeftAssignment2 = 17;
+    private static readonly string[][] _operatorPrecedences = new string[19][]
+        {
+            new string[] { "::", ":::" },
+            new string[] { "$", "@" },
+            new string[] { "[", "[[" }, // bracket operators
+            new string[] { "^" },       // right to left precedence
+            new string[] { "-", "+" },  // unary operarors
+            new string[] { ":" },
+            new string[] { "%" },       // any operator that starts with '%' (including user-defined operators)
+            new string[] { "|>" },
+            new string[] { "*", "/" },
+            new string[] { "+", "-" },
+            new string[] { "<", ">", "<>", "<=", ">=", "==", "!=" },
+            new string[] { "!" },
+            new string[] { "&", "&&" },
+            new string[] { "|", "||" },
+            new string[] { "~" },       // unary or binary
+            new string[] { "->", "->>" },
+            new string[] { "<-", "<<-" },
+            new string[] { "=" },
+            new string[] { "?", "??" }
+        };
 
     /// <summary>
     /// A token is a string of characters that represent a valid R element, plus meta 
@@ -340,28 +361,8 @@ public class RTokenList {
     /// <param name="tokenList"></param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
-    private List<RToken> GetTokenTreeList(List<RToken> tokenList)
+    private static List<RToken> GetTokenTreeList(List<RToken> tokenList)
     {
-        _operatorPrecedences[0] = new string[] { "::", ":::" };
-        _operatorPrecedences[1] = new string[] { "$", "@" };
-        _operatorPrecedences[_operatorsBrackets] = new string[] { "[", "[[" }; // bracket operators
-        _operatorPrecedences[3] = new string[] { "^" };                        // right to left precedence
-        _operatorPrecedences[_operatorsUnaryOnly] = new string[] { "-", "+" }; // unary operarors
-        _operatorPrecedences[5] = new string[] { ":" };
-        _operatorPrecedences[_operatorsUserDefined] = new string[] { "%" };    // any operator that starts with '%' (including user-defined operators)
-        _operatorPrecedences[7] = new string[] { "|>" };
-        _operatorPrecedences[8] = new string[] { "*", "/" };
-        _operatorPrecedences[9] = new string[] { "+", "-" };
-        _operatorPrecedences[10] = new string[] { "<", ">", "<>", "<=", ">=", "==", "!=" };
-        _operatorPrecedences[11] = new string[] { "!" };
-        _operatorPrecedences[12] = new string[] { "&", "&&" };
-        _operatorPrecedences[13] = new string[] { "|", "||" };
-        _operatorPrecedences[_operatorsTilda] = new string[] { "~" };          // unary or binary
-        _operatorPrecedences[_operatorsRightAssignment] = new string[] { "->", "->>" };
-        _operatorPrecedences[_operatorsLeftAssignment1] = new string[] { "<-", "<<-" };
-        _operatorPrecedences[_operatorsLeftAssignment2] = new string[] { "=" };
-        _operatorPrecedences[18] = new string[] { "?", "??" };
-
         var tokenTreeList = new List<RToken>();
         int pos = 0;
         while (pos < tokenList.Count)
@@ -595,7 +596,7 @@ public class RTokenList {
     /// 
     /// <returns>   A token tree restructured for the specified group of operators. </returns>
     /// --------------------------------------------------------------------------------------------
-    private List<RToken> GetLstTokenOperatorGroup(List<RToken> tokens, int posOperators)
+    private static List<RToken> GetLstTokenOperatorGroup(List<RToken> tokens, int posOperators)
     {
 
         if (tokens.Count < 1)
@@ -618,7 +619,11 @@ public class RTokenList {
             // that it has already been processed. This happens when the child is in the 
             // same precedence group as the parent but was processed first in accordance 
             // with the left to right rule (e.g. 'a/b*c').
-            if ((_operatorPrecedences[posOperators].Contains(token.Lexeme.Text) || posOperators == _operatorsUserDefined && Regex.IsMatch(token.Lexeme.Text, "^%.*%$")) && (token.ChildTokens.Count == 0 || token.ChildTokens.Count == 1 && token.ChildTokens[0].TokenType == RToken.TokenTypes.RPresentation))
+            if ((_operatorPrecedences[posOperators].Contains(token.Lexeme.Text) 
+                 || posOperators == _operatorsUserDefined && Regex.IsMatch(token.Lexeme.Text, "^%.*%$")) 
+                && (token.ChildTokens.Count == 0 
+                    || (token.ChildTokens.Count == 1 
+                        && token.ChildTokens[0].TokenType == RToken.TokenTypes.RPresentation)))
             {
 
                 switch (token.TokenType)
@@ -764,7 +769,7 @@ public class RTokenList {
     /// 
     /// <returns>   A token tree restructured for all the possible operators. </returns>
     /// --------------------------------------------------------------------------------------------
-    private List<RToken> GetTokenTreeOperators(List<RToken> tokens)
+    private static List<RToken> GetTokenTreeOperators(List<RToken> tokens)
     {
         if (tokens.Count <= 0)
         {
@@ -772,7 +777,7 @@ public class RTokenList {
         }
 
         var tokensNew = new List<RToken>();
-        for (int posOperators = 0, loopTo = Information.UBound(_operatorPrecedences) - 1; posOperators <= loopTo; posOperators++)
+        for (int posOperators = 0, loopTo = Information.UBound(_operatorPrecedences); posOperators <= loopTo; posOperators++)
         {
 
             // restructure the tree for the next group of operators in the precedence list
