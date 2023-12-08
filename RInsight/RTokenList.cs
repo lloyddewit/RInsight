@@ -1,7 +1,4 @@
-﻿using Microsoft.VisualBasic;
-using System.Text.RegularExpressions;
-
-namespace RInsight;
+﻿namespace RInsight;
 
 /// <summary>
 /// TODO
@@ -26,14 +23,11 @@ public class RTokenList {
     private static readonly int _operatorsUnaryOnly = 4;
     private static readonly int _operatorsUserDefined = 6;
     private static readonly int _operatorsTilda = 14;
-    private static readonly int _operatorsRightAssignment = 15;
-    private static readonly int _operatorsLeftAssignment1 = 16;
-    private static readonly int _operatorsLeftAssignment2 = 17;
 
     /// <summary>   The relative precedence of the R operators. This is a two-dimensional array 
     ///             because the operators are stored in groups together with operators that 
     ///             have the same precedence.</summary>
-    private static readonly string[][] _operatorPrecedences = new string[19][]
+    private static readonly string[][] _operatorPrecedences = new string[][]
         {
             new string[] { "::", ":::" },
             new string[] { "$", "@" },
@@ -61,9 +55,8 @@ public class RTokenList {
     /// data about the token type (identifier, operator, keyword, bracket etc.). 
     /// </summary>
     /// <param name="script"> The R script to parse. This must be valid R according to the 
-    ///                       R language specification at 
-    ///                       https://cran.r-project.org/doc/manuals/r-release/R-lang.html 
-    ///                       (referenced 01 Feb 2021).</param>
+    /// R language specification at https://cran.r-project.org/doc/manuals/r-release/R-lang.html 
+    /// (referenced 01 Feb 2021).</param>
     public RTokenList(string script) 
     {        
         if (string.IsNullOrEmpty(script))
@@ -620,7 +613,7 @@ public class RTokenList {
             // same precedence group as the parent but was processed first in accordance 
             // with the left to right rule (e.g. 'a/b*c').
             if ((_operatorPrecedences[posOperators].Contains(token.Lexeme.Text) 
-                 || posOperators == _operatorsUserDefined && Regex.IsMatch(token.Lexeme.Text, "^%.*%$")) 
+                 || posOperators == _operatorsUserDefined && token.Lexeme.IsOperatorUserDefinedComplete) 
                 && (token.ChildTokens.Count == 0 
                     || (token.ChildTokens.Count == 1 
                         && token.ChildTokens[0].TokenType == RToken.TokenTypes.RPresentation)))
@@ -777,7 +770,7 @@ public class RTokenList {
         }
 
         var tokensNew = new List<RToken>();
-        for (int posOperators = 0, loopTo = Information.UBound(_operatorPrecedences); posOperators <= loopTo; posOperators++)
+        for (int posOperators = 0; posOperators < _operatorPrecedences.Length; posOperators++)
         {
 
             // restructure the tree for the next group of operators in the precedence list
