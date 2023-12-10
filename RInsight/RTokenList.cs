@@ -361,10 +361,9 @@ public class RTokenList {
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>   
-    /// Iterates through the tokens in <paramref name="tokens"/> from position 
-    /// <paramref name="pos"/>. If the token is a '(' then it makes everything inside the brackets a 
-    /// child of the '(' token. If the '(' belongs to a function then makes the '(' a child of the 
-    /// function. Brackets may be nested. For example, '(a*(b+c))' is structured as:<code>
+    /// Iterates through the tokens in <paramref name="tokens"/>. If the token is a '(' then makes 
+    /// everything inside the brackets a child of the '(' token. Brackets may be nested. 
+    /// For example, '(a*(b+c))' is structured as:<code>
     ///   (<para>
     ///   ..a</para><para>
     ///   ..*</para><para>
@@ -376,45 +375,36 @@ public class RTokenList {
     ///   ..)</para></code></summary>
     /// 
     /// <param name="tokens">   The token tree to restructure. </param>
-    /// <param name="pos">        [in,out] The position in the list to start processing </param>
-    /// 
     /// <returns>   A token tree restructured for round brackets. </returns>
     /// --------------------------------------------------------------------------------------------
-    private static List<RToken> GetTokenTreeBrackets(List<RToken> tokens, ref int pos) // todo is pos needed?
+    private static List<RToken> GetTokenTreeBrackets(List<RToken> tokens)
     {
-
-        if (tokens.Count <= 0)
-        {
-            return new List<RToken>();
-        }
-
         var tokensNew = new List<RToken>();
         RToken token;
+        int pos = 0;
         while (pos < tokens.Count)
         {
             token = tokens[pos];
-            pos += 1;
-            switch (token.Lexeme.Text ?? "")
+            pos++;
+            if (token.Lexeme.Text == "(")
             {
-                case "(":
-                    {
-                        var tokensTmp = GetTokenTreeBrackets(tokens, ref pos);
-                        foreach (RToken tokenChild in tokensTmp)
-                        {
-                            if (tokenChild == null)
-                            {
-                                throw new Exception("Token has illegal empty child.");
-                            }
-                            token.ChildTokens.Add(tokenChild.CloneMe());
-                        }
+                int numOpenBrackets = 1;
+                while (pos < tokens.Count)
+                {
+                    RToken tokenTmp = tokens[pos];
+                    pos++;
 
+                    numOpenBrackets += tokenTmp.Lexeme.Text == "(" ? 1 : 0;
+                    numOpenBrackets -= tokenTmp.Lexeme.Text == ")" ? 1 : 0;
+
+                    if (numOpenBrackets == 0)
+                    {
+                        token.ChildTokens = GetTokenTreeBrackets(token.CloneMe().ChildTokens);
+                        token.ChildTokens.Add(tokenTmp.CloneMe());
                         break;
                     }
-                case ")":
-                    {
-                        tokensNew.Add(token.CloneMe());
-                        return tokensNew;
-                    }
+                    token.ChildTokens.Add(tokenTmp.CloneMe());
+                }
             }
             tokensNew.Add(token.CloneMe());
         }
@@ -557,10 +547,9 @@ public class RTokenList {
 
             // restructure the list into a token tree
             var tokenTreePresentation = GetTokenTreePresentation(statementTokens);
-            int treePos = 0;
-            var tokenTreeBrackets = GetTokenTreeBrackets(tokenTreePresentation, ref treePos);
+            var tokenTreeBrackets = GetTokenTreeBrackets(tokenTreePresentation);
             var tokenTreeFunctionBrackets = GetTokenTreeFunctionBrackets(tokenTreeBrackets);
-            treePos = 0;
+            int treePos = 0;
             var tokenTreeFunctionCommas = GetTokenTreeFunctionCommas(tokenTreeFunctionBrackets,
                                                                      ref treePos);
             var tokenTreeOperators = GetTokenTreeOperators(tokenTreeFunctionCommas);
@@ -761,7 +750,7 @@ public class RTokenList {
         return tokensNew;
     }
 
-    /// --------------------------------------------------------------------------------------------
+     /// --------------------------------------------------------------------------------------------
     /// <summary> 
     /// Iterates through all the possible operators in order of precedence. For each operator, 
     /// traverses the tree of tokens in <paramref name="tokens"/>. If the operator is found then 
