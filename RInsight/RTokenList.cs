@@ -422,19 +422,11 @@ public class RTokenList {
     /// --------------------------------------------------------------------------------------------
     private static List<RToken> GetTokenTreeFunctionBrackets(List<RToken> tokens)
     {
-
-        if (tokens.Count <= 0)
-        {
-            return new List<RToken>();
-        }
-
         var tokensNew = new List<RToken>();
-        RToken token;
         int pos = 0;
         while (pos < tokens.Count)
         {
-            token = tokens[pos];
-
+            RToken token = tokens[pos];
             if (token.TokenType == RToken.TokenTypes.RFunctionName)
             {
                 // if next steps will go out of bounds, then throw developer error
@@ -443,12 +435,12 @@ public class RTokenList {
                     throw new Exception("The function's parameters have an unexpected format and cannot be processed.");
                 }
                 // make the function's open bracket a child of the function name
-                pos += 1;
+                pos ++;
                 token.ChildTokens.Add(tokens[pos].CloneMe());
             }
             token.ChildTokens = GetTokenTreeFunctionBrackets(token.CloneMe().ChildTokens);
             tokensNew.Add(token.CloneMe());
-            pos += 1;
+            pos ++;
         }
         return tokensNew;
     }
@@ -479,14 +471,13 @@ public class RTokenList {
     private static List<RToken> GetTokenTreeFunctionCommas(List<RToken> tokens, ref int pos, bool processingComma = false) // todo is pos needed?
     {
         var tokensNew = new List<RToken>();
-        RToken token;
         var openBrackets = new List<string>() { "[", "[[" };
         var closeBrackets = new List<string>() { "]", "]]" };
         int numOpenBrackets = 0;
 
         while (pos < tokens.Count)
         {
-            token = tokens[pos];
+            RToken token = tokens[pos];
 
             // only process commas that separate function parameters,
             // ignore commas inside square bracket (e.g. `a[b,c]`)
@@ -501,7 +492,7 @@ public class RTokenList {
                 }
                 else
                 {
-                    pos += 1;
+                    pos ++;
                     token.ChildTokens = token.ChildTokens.Concat(GetTokenTreeFunctionCommas(tokens, ref pos, true)).ToList();
                 }
             }
@@ -512,7 +503,7 @@ public class RTokenList {
             }
 
             tokensNew.Add(token);
-            pos += 1;
+            pos ++;
         }
         return tokensNew;
     }
@@ -646,7 +637,7 @@ public class RTokenList {
                             {
                                 numOpenBrackets += (tokens[posTokens].Lexeme.Text ?? "") == (token.Lexeme.Text ?? "") ? 1 : 0;
                                 numOpenBrackets -= (tokens[posTokens].Lexeme.Text ?? "") == (closeBracket ?? "") ? 1 : 0;
-                                // discard the terminating cloe bracket
+                                // discard the terminating close bracket
                                 if (numOpenBrackets == 0)
                                 {
                                     break;
@@ -836,7 +827,7 @@ public class RTokenList {
         while (pos < tokens.Count)
         {
             token = tokens[pos];
-            pos += 1;
+            pos ++;
             switch (token.TokenType)
             {
                 case RToken.TokenTypes.RSpace:
