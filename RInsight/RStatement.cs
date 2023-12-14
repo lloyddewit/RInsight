@@ -234,13 +234,22 @@ public class RStatement
 
                     if (Conversions.ToBoolean(Operators.ConditionalCompareObjectEqual(clsElement.strTxt, "[", false)) || Conversions.ToBoolean(Operators.ConditionalCompareObjectEqual(clsElement.strTxt, "[[", false)))
                     {
-                        bool bOperatorAppended = false;
-                        foreach (RParameter clsRParameter in (IEnumerable)clsROperator.lstParameters)
+                        for (int pos = 0; pos < clsROperator.lstParameters.Count; pos++)
                         {
-                            strScript += this.GetScriptElement(clsRParameter.clsArgValue, bIncludeFormatting);
-                            strScript += bOperatorAppended ? "" : (strElementPrefix + clsElement.strTxt);
-                            bOperatorAppended = true;
+                            RParameter clsRParameter = clsROperator.lstParameters[pos];
+
+                            strScript += pos > 1 ? "," : "";
+                            strScript += GetScriptElement(clsRParameter.clsArgValue, bIncludeFormatting);
+                            strScript += pos == 0 ? clsROperator.strPrefix + clsROperator.strTxt : "";
                         }
+
+                        //bool bOperatorAppended = false;
+                        //foreach (RParameter clsRParameter in (IEnumerable)clsROperator.lstParameters)
+                        //{
+                        //    strScript += GetScriptElement(clsRParameter.clsArgValue, bIncludeFormatting);
+                        //    strScript += bOperatorAppended ? "" : (strElementPrefix + clsElement.strTxt);
+                        //    bOperatorAppended = true;
+                        //}
 
                         switch (clsElement.strTxt)
                         {
@@ -486,16 +495,58 @@ public class RStatement
 
             case RToken.TokenTypes.ROperatorBracket:
                 {
-                    if (clsToken.ChildTokens.Count < 1)
+                    //todo
+                    var closeBrackets = new HashSet<string> { "]", "]]" };
+                    if (closeBrackets.Contains(clsToken.Lexeme.Text))
                     {
-                        throw new Exception("Square bracket operator token has no children. A binary " + "operator must have at least 1 child (plus an optional " + "presentation child).");
-
+                        return null;
                     }
 
-                    var clsBracketOperator = new RElementOperator(clsToken, bBracketedNew);
+                    if (clsToken.ChildTokens.Count == 0)
+                    {
+                        throw new Exception("Square bracket operator token has no children. A bracket operator must have 1 or more children (plus an optional presentation child).");
+                    }
+
                     int startPos = clsToken.ChildTokens[0].TokenType == RToken.TokenTypes.RPresentation ? 1 : 0;
-                    for (int iPos = startPos, loopTo2 = clsToken.ChildTokens.Count - 1; iPos <= loopTo2; iPos++)
-                        clsBracketOperator.lstParameters.Add(GetRParameter(clsToken.ChildTokens[iPos], dctAssignments));
+                    if (clsToken.ChildTokens.Count == startPos)
+                    {
+                        throw new Exception("Square bracket operator token only has a presentation child. A bracket operator must have 1 or more children (plus an optional presentation child).");
+                    }
+
+                    var clsBracketOperator = new RElementOperator(clsToken, bBracketedNew); //todo move code below into RElementOperator constructor?
+                    for (int pos = startPos; pos < clsToken.ChildTokens.Count; pos++)
+                    {
+                        RToken tokenBracketChild = clsToken.ChildTokens[pos];
+                        // ignore close bracket
+                        if (closeBrackets.Contains(tokenBracketChild.Lexeme.Text))
+                        { continue; }
+
+                        RToken tokenParam = new RToken(new RLexeme(""), clsToken.ScriptPosStartStatement, RToken.TokenTypes.REmpty);
+                        if (tokenBracketChild.TokenType == RToken.TokenTypes.RSeparator)
+                        {
+                            // if comma has no left-hand operand, then insert empty parameter
+                            if (pos == startPos + 1)
+                            {
+                                clsBracketOperator.lstParameters.Add(GetRParameter(tokenParam, dctAssignments));
+                            }
+
+                            // if comma has a right-hand operand
+                            if (tokenBracketChild.ChildTokens.Count > 0)
+                            {
+                                int startPosCommaParams = tokenBracketChild.ChildTokens[0].TokenType == RToken.TokenTypes.RPresentation ? 1 : 0;
+                                if (tokenBracketChild.ChildTokens.Count > startPosCommaParams)
+                                {
+                                    tokenParam = tokenBracketChild.ChildTokens[startPosCommaParams];
+                                }
+                            }
+                        }
+                        else
+                        {
+                            tokenParam = tokenBracketChild;
+                        }
+                        clsBracketOperator.lstParameters.Add(GetRParameter(tokenParam, dctAssignments));
+                    }
+
                     return clsBracketOperator;
                 }
 
@@ -521,8 +572,19 @@ public class RStatement
 
             case RToken.TokenTypes.RSeparator: // a comma within a square bracket, e.g. `a[b,c]`
                 {
-                    // just return a regular element
-                    return new RElement(clsToken, bBracketedNew);
+                    // if ',' is followed by a parameter name or value (e.g. 'fn(a,b)'), then return the parameter
+                    if (clsToken.ChildTokens.Count == 0)
+                    {
+                        return new RElement(new RToken(new RLexeme("") , clsToken.ScriptPosStartStatement, RToken.TokenTypes.REmpty), bBracketedNew);
+                    } 
+                    else if (clsToken.ChildTokens.Count == 1)
+                    {
+                        return new RElement(clsToken.ChildTokens[0], bBracketedNew);
+                    }
+                    else
+                    {
+                        throw new Exception("The comma token has " + clsToken.ChildTokens.Count + " children. It must have 0 or 1 children.");
+                    }                    
                 }
 
             case RToken.TokenTypes.REndStatement:

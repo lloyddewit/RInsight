@@ -1,4 +1,6 @@
-﻿namespace RInsight;
+﻿using System.Linq;
+
+namespace RInsight;
 
 /// <summary>
 /// TODO
@@ -379,14 +381,16 @@ public class RTokenList {
     /// --------------------------------------------------------------------------------------------
     private static List<RToken> GetTokenTreeBrackets(List<RToken> tokens)
     {
+        var openBrackets = new HashSet<string> { "(", "[", "{", "[[" };
+        var closeBrackets = new HashSet<string> { ")", "]", "}", "]]" };
+
         var tokensNew = new List<RToken>();
-        RToken token;
         int pos = 0;
         while (pos < tokens.Count)
         {
-            token = tokens[pos];
+            RToken token = tokens[pos];
             pos++;
-            if (token.Lexeme.Text == "(")
+            if (openBrackets.Contains(token.Lexeme.Text))
             {
                 int numOpenBrackets = 1;
                 while (pos < tokens.Count)
@@ -394,8 +398,8 @@ public class RTokenList {
                     RToken tokenTmp = tokens[pos];
                     pos++;
 
-                    numOpenBrackets += tokenTmp.Lexeme.Text == "(" ? 1 : 0;
-                    numOpenBrackets -= tokenTmp.Lexeme.Text == ")" ? 1 : 0;
+                    numOpenBrackets += openBrackets.Contains(tokenTmp.Lexeme.Text) ? 1 : 0;
+                    numOpenBrackets -= closeBrackets.Contains(tokenTmp.Lexeme.Text) ? 1 : 0;
 
                     if (numOpenBrackets == 0)
                     {
@@ -468,44 +472,72 @@ public class RTokenList {
     /// 
     /// <returns>   A token tree restructured for function commas. </returns>
     /// --------------------------------------------------------------------------------------------
-    private static List<RToken> GetTokenTreeFunctionCommas(List<RToken> tokens, ref int pos, bool processingComma = false) // todo is pos needed?
+    private static List<RToken> GetTokenTreeFunctionCommas(List<RToken> tokens) // todo is pos needed?
     {
         var tokensNew = new List<RToken>();
         var openBrackets = new List<string>() { "[", "[[" };
         var closeBrackets = new List<string>() { "]", "]]" };
         int numOpenBrackets = 0;
 
-        while (pos < tokens.Count)
+        int posTokens = 0;
+        while (posTokens < tokens.Count)
         {
-            RToken token = tokens[pos];
+            RToken token = tokens[posTokens];
+            posTokens++;
 
-            // only process commas that separate function parameters,
-            // ignore commas inside square bracket (e.g. `a[b,c]`)
-            numOpenBrackets += openBrackets.Contains(token.Lexeme.Text) ? 1 : 0;
-            numOpenBrackets -= closeBrackets.Contains(token.Lexeme.Text) ? 1 : 0;
-            if (numOpenBrackets == 0 && token.Lexeme.Text == ",")
+            if (token.TokenType == RToken.TokenTypes.RSeparator)
             {
-                if (processingComma)
+                while (posTokens < tokens.Count)
                 {
-                    pos -= 1;  // ensure this comma is processed in the level above
-                    return tokensNew;
-                }
-                else
-                {
-                    pos ++;
-                    token.ChildTokens = token.ChildTokens.Concat(GetTokenTreeFunctionCommas(tokens, ref pos, true)).ToList();
+                    RToken tokenTmp = tokens[posTokens];
+                    // make each token up to next separator or close bracket, a child of the comma
+                    if (tokenTmp.TokenType == RToken.TokenTypes.RSeparator
+                        || closeBrackets.Contains(tokenTmp.Lexeme.Text))
+                    {
+                        break;
+                    }
+                    token.ChildTokens.Add(tokenTmp.CloneMe());
+                    posTokens++;                    
                 }
             }
-            else
-            {
-                int argiPos = 0;
-                token.ChildTokens = GetTokenTreeFunctionCommas(token.CloneMe().ChildTokens, ref argiPos);
-            }
 
-            tokensNew.Add(token);
-            pos ++;
+            token.ChildTokens = GetTokenTreeFunctionCommas(token.CloneMe().ChildTokens);
+            tokensNew.Add(token.CloneMe());
         }
+
         return tokensNew;
+
+        //while (pos < tokens.Count)
+        //{
+        //    RToken token = tokens[pos];
+
+        //    // only process commas that separate function parameters,
+        //    // ignore commas inside square bracket (e.g. `a[b,c]`)
+        //    numOpenBrackets += openBrackets.Contains(token.Lexeme.Text) ? 1 : 0;
+        //    numOpenBrackets -= closeBrackets.Contains(token.Lexeme.Text) ? 1 : 0;
+        //    if (numOpenBrackets == 0 && token.Lexeme.Text == ",")
+        //    {
+        //        if (processingComma)
+        //        {
+        //            pos -= 1;  // ensure this comma is processed in the level above
+        //            return tokensNew;
+        //        }
+        //        else
+        //        {
+        //            pos ++;
+        //            token.ChildTokens = token.ChildTokens.Concat(GetTokenTreeFunctionCommas(tokens, ref pos, true)).ToList();
+        //        }
+        //    }
+        //    else
+        //    {
+        //        int argiPos = 0;
+        //        token.ChildTokens = GetTokenTreeFunctionCommas(token.CloneMe().ChildTokens, ref argiPos);
+        //    }
+
+        //    tokensNew.Add(token);
+        //    pos ++;
+        //}
+        //return tokensNew;
     }
 
     /// --------------------------------------------------------------------------------------------
@@ -536,13 +568,11 @@ public class RTokenList {
                 }
             }
 
-            // restructure the list into a token tree
+            // restructure the statement's token list into a token tree
             var tokenTreePresentation = GetTokenTreePresentation(statementTokens);
             var tokenTreeBrackets = GetTokenTreeBrackets(tokenTreePresentation);
             var tokenTreeFunctionBrackets = GetTokenTreeFunctionBrackets(tokenTreeBrackets);
-            int treePos = 0;
-            var tokenTreeFunctionCommas = GetTokenTreeFunctionCommas(tokenTreeFunctionBrackets,
-                                                                     ref treePos);
+            var tokenTreeFunctionCommas = GetTokenTreeFunctionCommas(tokenTreeFunctionBrackets);
             var tokenTreeOperators = GetTokenTreeOperators(tokenTreeFunctionCommas);
 
             if (tokenTreeOperators.Count == 0
@@ -610,6 +640,7 @@ public class RTokenList {
             if ((_operatorPrecedences[posOperators].Contains(token.Lexeme.Text)
                  || posOperators == _operatorsUserDefined && token.Lexeme.IsOperatorUserDefinedComplete)
                 && (token.ChildTokens.Count == 0
+                    || token.TokenType == RToken.TokenTypes.ROperatorBracket
                     || (token.ChildTokens.Count == 1
                         && token.ChildTokens[0].TokenType == RToken.TokenTypes.RPresentation)))
             {
@@ -618,7 +649,7 @@ public class RTokenList {
                 {
                     case RToken.TokenTypes.ROperatorBracket: // handles '[' and '[['
                         {
-                            if (posOperators != _operatorsBrackets)
+                            if (posOperators != _operatorsBrackets) // todo is this check needed?
                             {
                                 break;
                             }
@@ -626,26 +657,33 @@ public class RTokenList {
                             // make the previous and next tokens (up to the corresponding close bracket), the children of the current token
                             if (tokenPrev == null)
                             {
-                                throw new Exception("The bracket operator has no parameter on its left.");
-                            }
-                            token.ChildTokens.Add(tokenPrev.CloneMe());
-                            prevTokenProcessed = true;
-                            posTokens += 1;
-                            string closeBracket = token.Lexeme.Text == "[" ? "]" : "]]";
-                            int numOpenBrackets = 1;
-                            while (posTokens < tokens.Count)
-                            {
-                                numOpenBrackets += (tokens[posTokens].Lexeme.Text ?? "") == (token.Lexeme.Text ?? "") ? 1 : 0;
-                                numOpenBrackets -= (tokens[posTokens].Lexeme.Text ?? "") == (closeBracket ?? "") ? 1 : 0;
-                                // discard the terminating close bracket
-                                if (numOpenBrackets == 0)
+                                if (token.ChildTokens.Count == 3 && token.ChildTokens[2].TokenType == RToken.TokenTypes.ROperatorBracket)
                                 {
+                                    // this bracket operator has already been processed so no further action needed
                                     break;
                                 }
-                                token.ChildTokens.Add(tokens[posTokens].CloneMe());
-                                posTokens += 1;
+                                throw new Exception("The bracket operator has no parameter on its left.");
                             }
 
+                            var children = token.CloneMe().ChildTokens;
+                            token.ChildTokens = new List<RToken>();
+                            int posChild = 0;
+                            if (children[0].TokenType == RToken.TokenTypes.RPresentation)
+                            {
+                                token.ChildTokens.Add(children[0].CloneMe());
+                                posChild++;
+                            }
+                            
+                            // make left-hand operand child of bracket operator
+                            token.ChildTokens.Add(tokenPrev.CloneMe()); 
+                            prevTokenProcessed = true;
+
+                            // make right-hand operand child of bracket operator todo use concatenate?
+                            while (posChild < children.Count)
+                            {
+                                token.ChildTokens.Add(children[posChild].CloneMe());
+                                posChild++;
+                            }
                             break;
                         }
 
@@ -666,7 +704,7 @@ public class RTokenList {
                             token.ChildTokens.Add(tokenPrev.CloneMe());
                             prevTokenProcessed = true;
                             token.ChildTokens.Add(GetNextToken(tokens, posTokens));
-                            posTokens += 1;
+                            posTokens++;
                             // while next token is the same operator (e.g. 'a+b+c+d...'), 
                             // then keep making the next token, the child of the current operator token
                             RToken tokenNext;
@@ -678,9 +716,9 @@ public class RTokenList {
                                     break;
                                 }
 
-                                posTokens += 1;
+                                posTokens++;
                                 token.ChildTokens.Add(GetNextToken(tokens, posTokens));
-                                posTokens += 1;
+                                posTokens++;
                             }
 
                             break;
@@ -694,7 +732,7 @@ public class RTokenList {
                             }
                             // make the next token, the child of the current operator token
                             token.ChildTokens.Add(GetNextToken(tokens, posTokens));
-                            posTokens += 1;
+                            posTokens++;
                             break;
                         }
                     case RToken.TokenTypes.ROperatorUnaryLeft:
@@ -729,7 +767,7 @@ public class RTokenList {
 
             tokenPrev = token.CloneMe();
             prevTokenProcessed = false;
-            posTokens += 1;
+            posTokens++;
         }
 
         if (tokenPrev == null)
