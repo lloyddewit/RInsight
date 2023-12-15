@@ -63,11 +63,6 @@ public class RTokenList {
     /// --------------------------------------------------------------------------------------------
     public RTokenList(string script) 
     {        
-        if (script.Length == 0)
-        {
-            Tokens = new List<RToken>();
-            return;
-        }                
         Tokens = GetTokenTreeList(GetTokenList(script));
     }
 
@@ -381,8 +376,8 @@ public class RTokenList {
     /// --------------------------------------------------------------------------------------------
     private static List<RToken> GetTokenTreeBrackets(List<RToken> tokens)
     {
-        var openBrackets = new HashSet<string> { "(", "[", "{", "[[" };
-        var closeBrackets = new HashSet<string> { ")", "]", "}", "]]" };
+        var openBrackets = new HashSet<string> { "{", "(", "[", "[[" };
+        var closeBrackets = new HashSet<string> { "}", ")", "]", "]]" };
 
         var tokensNew = new List<RToken>();
         int pos = 0;
@@ -417,40 +412,6 @@ public class RTokenList {
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
-    /// Traverses the tree of tokens in <paramref name="tokens"/>. If the token is a function name then it 
-    /// makes the subsequent '(' a child of the function name token. </summary>
-    /// 
-    /// <param name="tokens">   The token tree to restructure. </param>
-    /// 
-    /// <returns>   A token tree restructured for function names. </returns>
-    /// --------------------------------------------------------------------------------------------
-    private static List<RToken> GetTokenTreeFunctionBrackets(List<RToken> tokens)
-    {
-        var tokensNew = new List<RToken>();
-        int pos = 0;
-        while (pos < tokens.Count)
-        {
-            RToken token = tokens[pos];
-            if (token.TokenType == RToken.TokenTypes.RFunctionName)
-            {
-                // if next steps will go out of bounds, then throw developer error
-                if (pos > tokens.Count - 2)
-                {
-                    throw new Exception("The function's parameters have an unexpected format and cannot be processed.");
-                }
-                // make the function's open bracket a child of the function name
-                pos ++;
-                token.ChildTokens.Add(tokens[pos].CloneMe());
-            }
-            token.ChildTokens = GetTokenTreeFunctionBrackets(token.CloneMe().ChildTokens);
-            tokensNew.Add(token.CloneMe());
-            pos ++;
-        }
-        return tokensNew;
-    }
-
-    /// --------------------------------------------------------------------------------------------
-    /// <summary>
     /// Traverses the tree of tokens in <paramref name="tokens"/>. If the token is a ',' that 
     /// separates function parameters, then it makes everything up to the next ',' or ')' a child 
     /// of the ',' token. Parameters between function commas are optional. For example, 
@@ -472,12 +433,10 @@ public class RTokenList {
     /// 
     /// <returns>   A token tree restructured for function commas. </returns>
     /// --------------------------------------------------------------------------------------------
-    private static List<RToken> GetTokenTreeFunctionCommas(List<RToken> tokens) // todo is pos needed?
+    private static List<RToken> GetTokenTreeCommas(List<RToken> tokens)
     {
         var tokensNew = new List<RToken>();
-        var openBrackets = new List<string>() { "[", "[[" };
         var closeBrackets = new List<string>() { "]", "]]" };
-        int numOpenBrackets = 0;
 
         int posTokens = 0;
         while (posTokens < tokens.Count)
@@ -497,47 +456,49 @@ public class RTokenList {
                         break;
                     }
                     token.ChildTokens.Add(tokenTmp.CloneMe());
-                    posTokens++;                    
+                    posTokens++;
                 }
             }
 
-            token.ChildTokens = GetTokenTreeFunctionCommas(token.CloneMe().ChildTokens);
+            token.ChildTokens = GetTokenTreeCommas(token.CloneMe().ChildTokens);
             tokensNew.Add(token.CloneMe());
         }
 
         return tokensNew;
+    }
 
-        //while (pos < tokens.Count)
-        //{
-        //    RToken token = tokens[pos];
-
-        //    // only process commas that separate function parameters,
-        //    // ignore commas inside square bracket (e.g. `a[b,c]`)
-        //    numOpenBrackets += openBrackets.Contains(token.Lexeme.Text) ? 1 : 0;
-        //    numOpenBrackets -= closeBrackets.Contains(token.Lexeme.Text) ? 1 : 0;
-        //    if (numOpenBrackets == 0 && token.Lexeme.Text == ",")
-        //    {
-        //        if (processingComma)
-        //        {
-        //            pos -= 1;  // ensure this comma is processed in the level above
-        //            return tokensNew;
-        //        }
-        //        else
-        //        {
-        //            pos ++;
-        //            token.ChildTokens = token.ChildTokens.Concat(GetTokenTreeFunctionCommas(tokens, ref pos, true)).ToList();
-        //        }
-        //    }
-        //    else
-        //    {
-        //        int argiPos = 0;
-        //        token.ChildTokens = GetTokenTreeFunctionCommas(token.CloneMe().ChildTokens, ref argiPos);
-        //    }
-
-        //    tokensNew.Add(token);
-        //    pos ++;
-        //}
-        //return tokensNew;
+    /// --------------------------------------------------------------------------------------------
+    /// <summary>
+    /// Traverses the tree of tokens in <paramref name="tokens"/>. If the token is a function name then it 
+    /// makes the subsequent '(' a child of the function name token. </summary>
+    /// 
+    /// <param name="tokens">   The token tree to restructure. </param>
+    /// 
+    /// <returns>   A token tree restructured for function names. </returns>
+    /// --------------------------------------------------------------------------------------------
+    private static List<RToken> GetTokenTreeFunctions(List<RToken> tokens)
+    {
+        var tokensNew = new List<RToken>();
+        int pos = 0;
+        while (pos < tokens.Count)
+        {
+            RToken token = tokens[pos];
+            if (token.TokenType == RToken.TokenTypes.RFunctionName)
+            {
+                // if next steps will go out of bounds, then throw developer error
+                if (pos > tokens.Count - 2)
+                {
+                    throw new Exception("The function's parameters have an unexpected format and cannot be processed.");
+                }
+                // make the function's open bracket a child of the function name
+                pos ++;
+                token.ChildTokens.Add(tokens[pos].CloneMe());
+            }
+            token.ChildTokens = GetTokenTreeFunctions(token.CloneMe().ChildTokens);
+            tokensNew.Add(token.CloneMe());
+            pos ++;
+        }
+        return tokensNew;
     }
 
     /// --------------------------------------------------------------------------------------------
@@ -571,17 +532,18 @@ public class RTokenList {
             // restructure the statement's token list into a token tree
             var tokenTreePresentation = GetTokenTreePresentation(statementTokens);
             var tokenTreeBrackets = GetTokenTreeBrackets(tokenTreePresentation);
-            var tokenTreeFunctionBrackets = GetTokenTreeFunctionBrackets(tokenTreeBrackets);
-            var tokenTreeFunctionCommas = GetTokenTreeFunctionCommas(tokenTreeFunctionBrackets);
-            var tokenTreeOperators = GetTokenTreeOperators(tokenTreeFunctionCommas);
+            var tokenTreeCommas = GetTokenTreeCommas(tokenTreeBrackets);
+            var tokenTreeFunctions = GetTokenTreeFunctions(tokenTreeCommas);
+            var tokenTreeOperators = GetTokenTreeOperators(tokenTreeFunctions);
 
             if (tokenTreeOperators.Count == 0
                 || (tokenTreeOperators.Count == 1 && pos < tokenList.Count)
                 || tokenTreeOperators.Count > 2)
             {
                 throw new Exception("The token tree for a statement must contain a single token "
-                        + "followed by an endStatement token. Special case: for the last "
-                        + "statement in the script, an endStatement token is optional.");
+                        + "followed by an endStatement token.\n" 
+                        + "Special case: for the last statement in the script, an endStatement "
+                        + "token is optional.");
             }
             tokenTreeList.Add(tokenTreeOperators[0].CloneMe());
             if (tokenTreeOperators.Count > 1)
@@ -654,10 +616,10 @@ public class RTokenList {
                                 break;
                             }
 
-                            // make the previous and next tokens (up to the corresponding close bracket), the children of the current token
                             if (tokenPrev == null)
                             {
-                                if (token.ChildTokens.Count == 3 && token.ChildTokens[2].TokenType == RToken.TokenTypes.ROperatorBracket)
+                                if (token.ChildTokens.Count > 2 
+                                    && token.ChildTokens[token.ChildTokens.Count - 1].TokenType == RToken.TokenTypes.ROperatorBracket)
                                 {
                                     // this bracket operator has already been processed so no further action needed
                                     break;
