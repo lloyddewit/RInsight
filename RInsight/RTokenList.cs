@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using RInsight;
+using System.Linq;
 
 namespace RInsight;
 
@@ -436,7 +437,6 @@ public class RTokenList {
     private static List<RToken> GetTokenTreeCommas(List<RToken> tokens)
     {
         var tokensNew = new List<RToken>();
-        var closeBrackets = new List<string>() { "]", "]]" };
 
         int posTokens = 0;
         while (posTokens < tokens.Count)
@@ -446,12 +446,11 @@ public class RTokenList {
 
             if (token.TokenType == RToken.TokenTypes.RSeparator)
             {
-                while (posTokens < tokens.Count)
+                while (posTokens < tokens.Count-1) // -1 because we don't want to process the last token which is the close bracket
                 {
                     RToken tokenTmp = tokens[posTokens];
                     // make each token up to next separator or close bracket, a child of the comma
-                    if (tokenTmp.TokenType == RToken.TokenTypes.RSeparator
-                        || closeBrackets.Contains(tokenTmp.Lexeme.Text))
+                    if (tokenTmp.TokenType == RToken.TokenTypes.RSeparator)
                     {
                         break;
                     }
@@ -578,21 +577,19 @@ public class RTokenList {
     /// --------------------------------------------------------------------------------------------
     private static List<RToken> GetTokenTreeOperatorGroup(List<RToken> tokens, int posOperators)
     {
-
         if (tokens.Count < 1)
         {
             return new List<RToken>();
         }
 
         var tokensNew = new List<RToken>();
-        RToken token;
         RToken? tokenPrev = null;
         bool prevTokenProcessed = false;
 
         int posTokens = 0;
         while (posTokens < tokens.Count)
         {
-            token = tokens[posTokens].CloneMe();
+            RToken token = tokens[posTokens].CloneMe();
 
             // if the token is the operator we are looking for and it has not been processed already
             // Edge case: if the operator already has (non-presentation) children then it means 
@@ -606,46 +603,12 @@ public class RTokenList {
                     || (token.ChildTokens.Count == 1
                         && token.ChildTokens[0].TokenType == RToken.TokenTypes.RPresentation)))
             {
-
                 switch (token.TokenType)
                 {
                     case RToken.TokenTypes.ROperatorBracket: // handles '[' and '[['
                         {
-                            if (posOperators != _operatorsBrackets) // todo is this check needed?
-                            {
-                                break;
-                            }
-
-                            if (tokenPrev == null)
-                            {
-                                if (token.ChildTokens.Count > 2 
-                                    && token.ChildTokens[token.ChildTokens.Count - 1].TokenType == RToken.TokenTypes.ROperatorBracket)
-                                {
-                                    // this bracket operator has already been processed so no further action needed
-                                    break;
-                                }
-                                throw new Exception("The bracket operator has no parameter on its left.");
-                            }
-
-                            var children = token.CloneMe().ChildTokens;
-                            token.ChildTokens = new List<RToken>();
-                            int posChild = 0;
-                            if (children[0].TokenType == RToken.TokenTypes.RPresentation)
-                            {
-                                token.ChildTokens.Add(children[0].CloneMe());
-                                posChild++;
-                            }
-                            
-                            // make left-hand operand child of bracket operator
-                            token.ChildTokens.Add(tokenPrev.CloneMe()); 
+                            token.ChildTokens = GetOperatorBracketChildren(token.CloneMe().ChildTokens, tokenPrev);
                             prevTokenProcessed = true;
-
-                            // make right-hand operand child of bracket operator todo use concatenate?
-                            while (posChild < children.Count)
-                            {
-                                token.ChildTokens.Add(children[posChild].CloneMe());
-                                posChild++;
-                            }
                             break;
                         }
 
@@ -767,7 +730,6 @@ public class RTokenList {
         var tokensNew = new List<RToken>();
         for (int posOperators = 0; posOperators < _operatorPrecedences.Length; posOperators++)
         {
-
             // restructure the tree for the next group of operators in the precedence list
             tokensNew = GetTokenTreeOperatorGroup(tokens, posOperators);
 
@@ -776,7 +738,6 @@ public class RTokenList {
             foreach (RToken tokenTmp in tokensNew)
                 tokens.Add(tokenTmp.CloneMe());
         }
-
         return tokensNew;
     }
 
@@ -869,6 +830,42 @@ public class RTokenList {
             token.ChildTokens.Add(new RToken(new RLexeme(prefix), prefixScriptPos, RToken.TokenTypes.RPresentation));
             tokensNew.Add(token);
         }
+
+        return tokensNew;
+    }
+
+    /// <summary>
+    /// todo
+    /// </summary>
+    /// <param name="tokens"></param>
+    /// <param name="tokenPrev"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
+    private static List<RToken> GetOperatorBracketChildren(List<RToken> tokens, RToken? tokenPrev)
+    {
+        List<RToken> tokensNew = new List<RToken>();
+        if (tokenPrev == null)
+        {
+            if (tokens.Count > 2
+                && tokens[tokens.Count - 1].TokenType == RToken.TokenTypes.ROperatorBracket)
+            {
+                // this bracket operator has already been processed so no further action needed
+                return tokens;
+            }
+            throw new Exception("The bracket operator has no parameter on its left.");
+        }
+
+        // if there is a presentation token, then make it the first token in the list
+        int posFirstNonPresentationChild = tokens[0].TokenType == RToken.TokenTypes.RPresentation ? 1 : 0;
+        if (posFirstNonPresentationChild == 1)
+        {
+            tokensNew.Add(tokens[0].CloneMe());
+        }
+        // make the left-hand operand (e.g. 'a' in 'a[b]') the next child
+        tokensNew.Add(tokenPrev.CloneMe());
+
+        // make the right-hand operand(s) the next children
+        tokensNew.AddRange(tokens.GetRange(posFirstNonPresentationChild, tokens.Count - posFirstNonPresentationChild));
 
         return tokensNew;
     }
