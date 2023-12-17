@@ -591,7 +591,7 @@ public class RTokenList {
         {
             RToken token = tokens[posTokens].CloneMe();
 
-            // if the token is the operator we are looking for and it has not been processed already
+            // if the token is the operator we are looking for and it has not been processed already.
             // Edge case: if the operator already has (non-presentation) children then it means 
             // that it has already been processed. This happens when the child is in the 
             // same precedence group as the parent but was processed first in accordance 
@@ -620,32 +620,8 @@ public class RTokenList {
                                 // do not process (binary '+' and '-' have a lower precedence and will be processed later)
                                 break;
                             }
-                            else if (tokenPrev == null)
-                            {
-                                throw new Exception("The binary operator has no parameter on its left.");
-                            }
-
-                            // make the previous and next tokens, the children of the current token
-                            token.ChildTokens.Add(tokenPrev.CloneMe());
+                            token.ChildTokens.AddRange(GetOperatorBinaryChildren(tokens, ref posTokens, tokenPrev));
                             prevTokenProcessed = true;
-                            token.ChildTokens.Add(GetNextToken(tokens, posTokens));
-                            posTokens++;
-                            // while next token is the same operator (e.g. 'a+b+c+d...'), 
-                            // then keep making the next token, the child of the current operator token
-                            RToken tokenNext;
-                            while (posTokens < tokens.Count - 1)
-                            {
-                                tokenNext = GetNextToken(tokens, posTokens);
-                                if (!(token.TokenType == tokenNext.TokenType) || !((token.Lexeme.Text ?? "") == (tokenNext.Lexeme.Text ?? "")))
-                                {
-                                    break;
-                                }
-
-                                posTokens++;
-                                token.ChildTokens.Add(GetNextToken(tokens, posTokens));
-                                posTokens++;
-                            }
-
                             break;
                         }
                     case RToken.TokenTypes.ROperatorUnaryRight:
@@ -671,7 +647,6 @@ public class RTokenList {
                             prevTokenProcessed = true;
                             break;
                         }
-
                     default:
                         {
                             throw new Exception("The token has an unknown operator type.");
@@ -681,7 +656,7 @@ public class RTokenList {
 
             // if token was not the operator we were looking for
             // (or we were looking for a unary right operator)
-            if (!prevTokenProcessed && !(tokenPrev == null))
+            if (!prevTokenProcessed && tokenPrev != null)
             {
                 // add the previous token to the tree
                 tokensNew.Add(tokenPrev);
@@ -832,6 +807,45 @@ public class RTokenList {
         }
 
         return tokensNew;
+    }
+
+    /// <summary>
+    /// todo
+    /// </summary>
+    /// <param name="tokens"></param>
+    /// <param name="posTokens"></param>
+    /// <param name="tokenPrev"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
+    private static List<RToken> GetOperatorBinaryChildren(List<RToken> tokens, ref int posTokens, RToken? tokenPrev)
+    {
+        if (tokenPrev == null)
+        {
+            throw new Exception("The binary operator has no parameter on its left.");
+        }
+
+        List<RToken> childTokens = new List<RToken>();
+        RToken.TokenTypes tokenType = tokens[posTokens].TokenType;
+        string tokenText = tokens[posTokens].Lexeme.Text ?? "";
+
+        // make the previous and next tokens, the children of the current token
+        childTokens.Add(tokenPrev.CloneMe());
+        childTokens.Add(GetNextToken(tokens, posTokens));
+        posTokens++;
+        // while next token is the same operator (e.g. 'a+b+c+d...'), 
+        // then keep making the next token, the child of the current operator token
+        while (posTokens < tokens.Count - 1)
+        {
+            RToken tokenNext = GetNextToken(tokens, posTokens);
+            if (tokenType != tokenNext.TokenType || tokenText != tokenNext.Lexeme.Text)
+            {
+                break;
+            }
+            posTokens++;
+            childTokens.Add(GetNextToken(tokens, posTokens));
+            posTokens++;
+        }
+        return childTokens;
     }
 
     /// <summary>
