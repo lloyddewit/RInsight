@@ -102,6 +102,89 @@ public class RTokenList {
             return new List<RToken>();
         }
 
+        var openBrackets = new HashSet<string> { "{", "(", "[", "[[" };
+        var closeBrackets = new HashSet<string> { "}", ")", "]", "]]" };
+
+        RLexeme lexemePrev = new RLexeme("");
+        RLexeme lexemeCurrent = new RLexeme("");
+        RLexeme lexemeNext;
+        bool lexemePrevOnSameLine = false;
+        bool lexemeNextOnSameLine;
+        bool statementContainsElement = false;
+        RToken token;
+
+        int numOpenBrackets = 0;
+        var tokenList = new List<RToken>();
+        uint scriptPos = 0U;
+        for (int pos = 0; pos < lexemes.Count; pos++)
+        {
+            // store previous non-space lexeme
+            if (lexemeCurrent.IsElement)
+            {
+                lexemePrev = lexemeCurrent;
+                lexemePrevOnSameLine = true;
+            }
+            else if (lexemeCurrent.IsNewLine)
+            {
+                lexemePrevOnSameLine = false;
+            }
+
+            lexemeCurrent = lexemes[pos];
+            statementContainsElement = statementContainsElement || lexemeCurrent.IsElement;
+
+            // find next lexeme that represents an R element
+            lexemeNext = new RLexeme("");
+            lexemeNextOnSameLine = true;
+            for (int nextPos = pos + 1; nextPos <= lexemes.Count - 1; nextPos++)
+            {
+                RLexeme lexeme = lexemes[nextPos];
+                if (lexeme.IsNewLine)
+                {
+                    lexemeNextOnSameLine = false;
+                }
+                else if (lexeme.IsElement)
+                {
+                    lexemeNext = lexeme;
+                    break;
+                }
+            }
+
+            numOpenBrackets += openBrackets.Contains(lexemeCurrent.Text) ? 1 : 0;
+            numOpenBrackets -= closeBrackets.Contains(lexemeCurrent.Text) ? 1 : 0;
+
+            // identify the token associated with the current lexeme and add the token to the list
+            bool statementHasOpenBrackets = numOpenBrackets > 0;
+            token = new RToken(lexemePrev, lexemeCurrent, lexemeNext,
+                               lexemePrevOnSameLine, lexemeNextOnSameLine, scriptPos,
+                               statementHasOpenBrackets, statementContainsElement);
+            scriptPos += (uint)lexemeCurrent.Text.Length;
+            if (token.TokenType == RToken.TokenTypes.REndStatement)
+            {
+                statementContainsElement = false;
+            }
+
+            // add new token to token list
+            tokenList.Add(token);
+        }
+        return tokenList;
+    }
+
+    /// --------------------------------------------------------------------------------------------
+    /// <summary>
+    /// todo refactor for key words
+    /// </summary>
+    /// <param name="script"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception"></exception>
+    /// --------------------------------------------------------------------------------------------
+    private static List<RToken> GetTokenList2(string script)
+    {
+        var lexemes = new RLexemeList(script).Lexemes;
+        if (lexemes.Count == 0)
+        {
+            return new List<RToken>();
+        }
+
         RLexeme lexemePrev = new RLexeme("");
         RLexeme lexemeCurrent = new RLexeme("");
         RLexeme lexemeNext;
@@ -208,7 +291,7 @@ public class RTokenList {
 
             // identify the token associated with the current lexeme and add the token to the list
             bool statementHasOpenBrackets = numOpenBrackets.Peek() > 0;
-            token = new RToken(lexemePrev, lexemeCurrent, lexemeNext, 
+            token = new RToken(lexemePrev, lexemeCurrent, lexemeNext,
                                lexemePrevOnSameLine, lexemeNextOnSameLine, scriptPos,
                                statementHasOpenBrackets, statementContainsElement);
             scriptPos += (uint)lexemeCurrent.Text.Length;
@@ -257,9 +340,9 @@ public class RTokenList {
                         }
                     case RTokenList.tokenState.WaitingForStartScript:
                         {
-                            if (!(token.TokenType == RToken.TokenTypes.RComment 
-                                  || token.TokenType == RToken.TokenTypes.RPresentation 
-                                  || token.TokenType == RToken.TokenTypes.RSpace 
+                            if (!(token.TokenType == RToken.TokenTypes.RComment
+                                  || token.TokenType == RToken.TokenTypes.RPresentation
+                                  || token.TokenType == RToken.TokenTypes.RSpace
                                   || token.TokenType == RToken.TokenTypes.RNewLine))
                             {
                                 tokenState.Pop();
@@ -331,7 +414,7 @@ public class RTokenList {
                 {
                     lexemeCurrent = lexemes[nextPos];
 
-                    token = new RToken(new RLexeme(""), lexemeCurrent, new RLexeme(""), 
+                    token = new RToken(new RLexeme(""), lexemeCurrent, new RLexeme(""),
                                        false, false, scriptPos, false, false);
                     scriptPos += (uint)lexemeCurrent.Text.Length;
 
@@ -345,13 +428,13 @@ public class RTokenList {
                             }
                         default:
                             {
-                                throw new Exception("Only spaces, newlines and comments are " 
+                                throw new Exception("Only spaces, newlines and comments are "
                                                     + "allowed after the script ends.");
                             }
                     }
                     // add new token to token list
                     tokenList.Add(token);
-                }                
+                }
             }
         }
         return tokenList;
