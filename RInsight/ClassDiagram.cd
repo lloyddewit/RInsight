@@ -17,7 +17,7 @@
   <Class Name="RInsight.RStatement">
     <Position X="0.5" Y="2.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>ABARBAIBEAAMQAAAAAAAA6SwAAAAGgKEAAACEAACAhA=</HashCode>
+      <HashCode>AAARBAIAAAAEQAAAAAAAA4AwAAAAAAIEAAAAAAAAAhA=</HashCode>
       <FileName>RStatement.cs</FileName>
     </TypeIdentifier>
   </Class>
@@ -59,7 +59,7 @@
   <Class Name="RInsight.RElementProperty">
     <Position X="6.5" Y="3.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>gAAAAAgAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAA=</HashCode>
+      <HashCode>gAAAAAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>RElementProperty.cs</FileName>
     </TypeIdentifier>
   </Class>
@@ -73,40 +73,28 @@
   <Class Name="RInsight.RToken">
     <Position X="14" Y="0.5" Width="1.5" />
     <NestedTypes>
-      <Enum Name="RInsight.RToken.TokenType" Collapsed="true">
-        <TypeIdentifier>
-          <NewMemberFileName>RToken.cs</NewMemberFileName>
-        </TypeIdentifier>
-      </Enum>
-      <Enum Name="RInsight.RToken.typTokenState" Collapsed="true">
+      <Enum Name="RInsight.RToken.TokenTypes" Collapsed="true">
         <TypeIdentifier>
           <NewMemberFileName>RToken.cs</NewMemberFileName>
         </TypeIdentifier>
       </Enum>
     </NestedTypes>
     <TypeIdentifier>
-      <HashCode>AACAAAAAAAAAAAAAAAAAAAAAAAABIAAAAAASAAAAAAA=</HashCode>
+      <HashCode>AASAgAAAAAQAAAAAAAAAAAEAAAAAIAAAAAAAAAAAAgA=</HashCode>
       <FileName>RToken.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="RInsight.RTokenList">
     <Position X="12.25" Y="0.5" Width="1.5" />
-    <NestedTypes>
-      <Enum Name="RInsight.RTokenList.tokenState" Collapsed="true">
-        <TypeIdentifier>
-          <NewMemberFileName>RTokenList.cs</NewMemberFileName>
-        </TypeIdentifier>
-      </Enum>
-    </NestedTypes>
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAA=</HashCode>
+      <HashCode>AgAQAAAQAABAAAAABAyAAAAAABgAAgAAAAAABAADAQI=</HashCode>
       <FileName>RTokenList.cs</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="RInsight.RLexeme">
     <Position X="17.5" Y="0.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAgAACACAQAAIAAFIAgAAQEGBAAEARALIAACiAiADAA=</HashCode>
+      <HashCode>AAgAACACAQAAIQAFIggAAQEGBAAEAxALIgACiAiADAA=</HashCode>
       <FileName>RLexeme.cs</FileName>
     </TypeIdentifier>
   </Class>

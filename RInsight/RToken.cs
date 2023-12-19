@@ -1,5 +1,6 @@
 ﻿namespace RInsight;
 
+/// ----------------------------------------------------------------------------------------------
 /// <summary>
 /// Represents an R token. This consists of the token's lexeme (a string of characters that 
 /// represents a valid R element) and meta data about the lexeme. The meta data includes the token 
@@ -13,6 +14,7 @@
 /// ....1
 /// ....2</para>
 /// </summary>
+/// ----------------------------------------------------------------------------------------------
 public class RToken
 {
 

@@ -2,11 +2,15 @@
 
 namespace RInsight;
 
+/// --------------------------------------------------------------------------------------------
 /// <summary>
 /// Represents a potential R lexeme (a string of characters that represents a valid R element).
+/// For example '+', 'variableName', '123', 'functionName', 'if', 'for', ', 'return', '[[', 
+/// '...', 'TRUE', 'NaN', '...', '::', '>=', '<-',  '# comment' etc.
 /// The class includes a set of public properties that identify the type of lexeme; and whether
 /// the lexeme is valid or invalid.
 /// </summary>
+/// --------------------------------------------------------------------------------------------
 public class RLexeme
 {
 

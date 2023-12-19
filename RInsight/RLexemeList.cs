@@ -1,9 +1,11 @@
 ﻿namespace RInsight;
 
+/// --------------------------------------------------------------------------------------------
 /// <summary>
 /// Represents an R script as a list of R lexemes. Each lexeme is a string of characters that 
 /// represents a valid R element (identifier, operator, keyword, seperator, bracket etc.).
 /// </summary>
+/// --------------------------------------------------------------------------------------------
 public class RLexemeList {
 
     /// <summary>
