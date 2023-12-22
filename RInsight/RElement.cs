@@ -7,7 +7,7 @@ namespace RInsight;
 // 
 // summary:	TODO
 // ---------------------------------------------------------------------------------------------------
-public class clsRElement
+public class RElement
 {
     /// <summary> The text representation of the element (e.g. '+', '/', 'myFunction', 
 ///           '"my string constant"' etc.). </summary>
@@ -29,11 +29,11 @@ public class clsRElement
 ///   myFunction()</para></code></summary>
     public string strPrefix = "";
 
-    public clsRElement(clsRToken clsToken, bool bBracketedNew = false, string strPackagePrefix = "")
+    public RElement(RToken clsToken, bool bBracketedNew = false, string strPackagePrefix = "")
     {
-        strTxt = clsToken.strTxt;
+        strTxt = clsToken.Lexeme.Text;
         bBracketed = bBracketedNew;
-        strPrefix = strPackagePrefix + (clsToken.lstTokens.Count > 0 && clsToken.lstTokens[0].enuToken == clsRToken.typToken.RPresentation ? clsToken.lstTokens[0].strTxt : "");
+        strPrefix = strPackagePrefix + (clsToken.ChildTokens.Count > 0 && clsToken.ChildTokens[0].TokenType == RToken.TokenTypes.RPresentation ? clsToken.ChildTokens[0].Lexeme.Text : "");
 
     }
 

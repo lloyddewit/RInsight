@@ -3,13 +3,13 @@ using Microsoft.VisualBasic;
 
 namespace RInsight;
 
-public class clsRElementOperator : clsRElementAssignable
+public class RElementOperator : RElementAssignable
 {
     public bool bFirstParamOnRight = false;
     public string strTerminator = ""; // only used for '[' and '[[' operators
-    public List<clsRParameter> lstParameters = new List<clsRParameter>();
+    public List<RParameter> lstParameters = new List<RParameter>();
 
-    public clsRElementOperator(clsRToken clsToken, bool bBracketedNew = false, bool bFirstParamOnRightNew = false) : base(clsToken, null, bBracketedNew)
+    public RElementOperator(RToken clsToken, bool bBracketedNew = false, bool bFirstParamOnRightNew = false) : base(clsToken, null, bBracketedNew)
     {
         bFirstParamOnRight = bFirstParamOnRightNew;
     }
@@ -23,7 +23,7 @@ public class clsRElementOperator : clsRElementAssignable
     {
         string strTxt = "ElementOperator: " + Constants.vbLf + "bFirstParamOnRight: " + bFirstParamOnRight + Constants.vbLf + "strTerminator: " + strTerminator + Constants.vbLf + "lstRParameters" + Constants.vbLf;
 
-        foreach (clsRParameter clsParameter in lstParameters)
+        foreach (RParameter clsParameter in lstParameters)
             strTxt += clsParameter.GetAsDebugString();
 
         return strTxt;

@@ -7,6 +7,7 @@
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
 	<Title>$(AssemblyName)</Title>
 	<VersionPrefix>0.0.1</VersionPrefix>
+	<PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,6 +15,13 @@
 		<Pack>true</Pack>
 		<PackagePath>\</PackagePath>
 	</Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
   </ItemGroup>
 	
 </Project>

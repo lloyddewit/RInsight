@@ -2,11 +2,11 @@
 
 namespace RInsight;
 
-public class clsRParameter
+public class RParameter
 {
-    public string strArgName; // TODO spaces around '=' as option?
-    public clsRElement clsArgValue;
-    public clsRElement clsArgValueDefault;
+    public string? strArgName; // TODO spaces around '=' as option?
+    public RElement? clsArgValue;
+    public RElement? clsArgValueDefault;
     public int iArgPos;
     public int iArgPosDefinition;
     public string strPrefix = "";
@@ -18,7 +18,7 @@ public class clsRParameter
 /// --------------------------------------------------------------------------------------------
     public string GetAsDebugString()
     {
-        return "Parameter: " + Constants.vbLf + "clsArgValue: " + clsArgValue.GetAsDebugString() + Constants.vbLf + "strPrefix: " + strPrefix + Constants.vbLf;
+        return "Parameter: " + Constants.vbLf + "clsArgValue: " + clsArgValue?.GetAsDebugString() + Constants.vbLf + "strPrefix: " + strPrefix + Constants.vbLf;
     }
 
 }

@@ -3,12 +3,12 @@ using Microsoft.VisualBasic;
 
 namespace RInsight;
 
-public class clsRElementFunction : clsRElementProperty
+public class RElementFunction : RElementProperty
 {
 
-    public List<clsRParameter> lstParameters = new List<clsRParameter>();
+    public List<RParameter> lstParameters = new List<RParameter>();
 
-    public clsRElementFunction(clsRToken clsToken, bool bBracketedNew = false, string strPackageNameNew = "", string strPackagePrefix = "", List<clsRElement> lstObjectsNew = null) : base(clsToken, bBracketedNew, strPackageNameNew, strPackagePrefix, lstObjectsNew)
+    public RElementFunction(RToken clsToken, bool bBracketedNew = false, string strPackageNameNew = "", string strPackagePrefix = "", List<RElement>? lstObjectsNew = null) : base(clsToken, lstObjectsNew, bBracketedNew, strPackageNameNew, strPackagePrefix)
     {
     }
 
@@ -23,7 +23,7 @@ public class clsRElementFunction : clsRElementProperty
     {
         string strTxt = "ElementFunction: " + Constants.vbLf;
 
-        foreach (clsRParameter clsParameter in lstParameters)
+        foreach (RParameter clsParameter in lstParameters)
             strTxt += clsParameter.GetAsDebugString();
 
         return strTxt;
