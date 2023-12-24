@@ -13,8 +13,12 @@
 /// --------------------------------------------------------------------------------------------
 public class RTokenList {
 
-    /// <summary> List of tokens that represents the R script </summary>
+    /// <summary> List of tokens that represents the R script. 
+    /// Each token is a tree representing a single R statement. </summary>
     public List<RToken> Tokens { get; private set; }
+
+    /// <summary> List of tokens that represents the R script </summary>
+    public List<RToken> TokensFlat { get; private set; }
 
     // Indexes to the _operatorPrecedences array for operators with special characteristics
     private static readonly int _operatorsUnaryOnly = 4;
@@ -63,8 +67,9 @@ public class RTokenList {
     /// (referenced 01 Feb 2021).</param>
     /// --------------------------------------------------------------------------------------------
     public RTokenList(string script) 
-    {        
-        Tokens = GetTokenTreeList(GetTokenList(script));
+    {
+        TokensFlat = GetTokenList(script);
+        Tokens = GetTokenTreeList(TokensFlat);
     }
 
     /// --------------------------------------------------------------------------------------------
