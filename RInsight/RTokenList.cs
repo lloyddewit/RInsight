@@ -329,47 +329,12 @@ public class RTokenList {
     /// --------------------------------------------------------------------------------------------
     private static List<RToken> GetTokenTreeList(List<RToken> tokenList)
     {
-        var tokenTreeList = new List<RToken>();
-        int pos = 0;
-        while (pos < tokenList.Count)
-        {
-            // create list of tokens for this statement
-            var statementTokens = new List<RToken>();
-            while (pos < tokenList.Count)
-            {
-                statementTokens.Add(tokenList[pos]);
-                pos++;
-                // we don't add this termination condition to the while statement
-                //   because we also want the token that terminates the statement.
-                if (tokenList[pos - 1].TokenType == RToken.TokenTypes.REndStatement)
-                {
-                    break;
-                }
-            }
-
-            // restructure the statement's token list into a token tree
-            var tokenTreePresentation = GetTokenTreePresentation(statementTokens);
-            var tokenTreeBrackets = GetTokenTreeBrackets(tokenTreePresentation);
-            var tokenTreeCommas = GetTokenTreeCommas(tokenTreeBrackets);
-            var tokenTreeFunctions = GetTokenTreeFunctions(tokenTreeCommas);
-            var tokenTreeOperators = GetTokenTreeOperators(tokenTreeFunctions);
-
-            if (tokenTreeOperators.Count == 0
-                || (tokenTreeOperators.Count == 1 && pos < tokenList.Count)
-                || tokenTreeOperators.Count > 2)
-            {
-                throw new Exception("The token tree for a statement must contain a single token "
-                        + "followed by an endStatement token.\n" 
-                        + "Special case: for the last statement in the script, an endStatement "
-                        + "token is optional.");
-            }
-            tokenTreeList.Add(tokenTreeOperators[0].CloneMe());
-            if (tokenTreeOperators.Count > 1)
-            {
-                tokenTreeList.Add(tokenTreeOperators[1].CloneMe());
-            }
-        }
-        return tokenTreeList;
+        var tokenTreePresentation = GetTokenTreePresentation(tokenList);
+        var tokenTreeBrackets = GetTokenTreeBrackets(tokenTreePresentation);
+        var tokenTreeCommas = GetTokenTreeCommas(tokenTreeBrackets);
+        var tokenTreeFunctions = GetTokenTreeFunctions(tokenTreeCommas);
+        var tokenTreeOperators = GetTokenTreeOperators(tokenTreeFunctions);
+        return tokenTreeOperators;
     }
 
     /// --------------------------------------------------------------------------------------------

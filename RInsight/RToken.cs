@@ -216,9 +216,9 @@ public class RToken
     public RToken CloneMe()
     {
         var token = new RToken(Lexeme, _scriptPos, TokenType);
-        foreach (RToken clsTokenChild in ChildTokens)
+        foreach (RToken child in ChildTokens)
         {
-            token.ChildTokens.Add(clsTokenChild.CloneMe());
+            token.ChildTokens.Add(child.CloneMe());
         }
         return token;
     }
