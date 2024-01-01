@@ -285,6 +285,42 @@ public class RTokenList {
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
+    /// Traverses the <paramref name="tokens"/> tree. If the token is an end statement then it 
+    /// appends the end statement token to the child list of the previous token. 
+    /// Returns a list of tokens where each top-level token represents a single statement including 
+    /// the statement's end statement token.</summary>
+    /// 
+    /// <param name="tokens">  The token tree to restructure. </param>
+    /// <returns>              A token tree restructured for end statement tokens. </returns>
+    /// --------------------------------------------------------------------------------------------
+    private static List<RToken> GetTokenTreeEndStatements(List<RToken> tokens)
+    {
+        var tokensNew = new List<RToken>();
+        int pos = 0;
+        while (pos < tokens.Count)
+        {
+            RToken tokenStatement = tokens[pos].CloneMe();
+
+            if (pos < tokens.Count - 1)
+            {
+                RToken tokenEndStatement = tokens[pos + 1].CloneMe();
+
+                if (tokenEndStatement.TokenType != RToken.TokenTypes.REndStatement)
+                {
+                    throw new Exception("End statement token expected but not found.");
+                }
+
+                // make the end statement token a child of the previous token
+                tokenStatement.ChildTokens.Add(tokenEndStatement.CloneMe());
+            }
+            tokensNew.Add(tokenStatement.CloneMe());
+            pos += 2;
+        }
+        return tokensNew;
+    }
+
+    /// --------------------------------------------------------------------------------------------
+    /// <summary>
     /// Traverses the <paramref name="tokens"/> tree. If the token is a function name then it makes 
     /// the subsequent '(' a child of the function name token. </summary>
     /// 
@@ -334,6 +370,7 @@ public class RTokenList {
         var tokenTreeCommas = GetTokenTreeCommas(tokenTreeBrackets);
         var tokenTreeFunctions = GetTokenTreeFunctions(tokenTreeCommas);
         var tokenTreeOperators = GetTokenTreeOperators(tokenTreeFunctions);
+        var tokenTreeEndStatements = GetTokenTreeEndStatements(tokenTreeOperators);
         return tokenTreeOperators;
     }
 
@@ -662,7 +699,7 @@ public class RTokenList {
         List<RToken> tokensNew = new List<RToken>();
         if (tokenPrev == null)
         {
-            if (tokens.Count > 2
+            if (tokens.Count > 1
                 && tokens[tokens.Count - 1].TokenType == RToken.TokenTypes.ROperatorBracket)
             {
                 // this bracket operator has already been processed so no further action needed
