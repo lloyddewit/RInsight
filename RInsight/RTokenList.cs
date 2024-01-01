@@ -1,4 +1,7 @@
-﻿namespace RInsight;
+﻿using System.ComponentModel;
+using System.Diagnostics;
+
+namespace RInsight;
 
 /// --------------------------------------------------------------------------------------------
 /// <summary>
@@ -296,26 +299,32 @@ public class RTokenList {
     private static List<RToken> GetTokenTreeEndStatements(List<RToken> tokens)
     {
         var tokensNew = new List<RToken>();
-        int pos = 0;
+        if (tokens.Count < 1)
+        {
+            return tokensNew;
+        }
+
+        RToken tokenPrev = tokens[0].CloneMe();
+        int pos = 1;
         while (pos < tokens.Count)
         {
-            RToken tokenStatement = tokens[pos].CloneMe();
+            tokenPrev.ChildTokens = GetTokenTreeEndStatements(tokenPrev.CloneMe().ChildTokens);
 
-            if (pos < tokens.Count - 1)
+            RToken token = tokens[pos];
+            if (token.TokenType == RToken.TokenTypes.REndStatement && token.Lexeme.Text != "}")
             {
-                RToken tokenEndStatement = tokens[pos + 1].CloneMe();
-
-                if (tokenEndStatement.TokenType != RToken.TokenTypes.REndStatement)
-                {
-                    throw new Exception("End statement token expected but not found.");
-                }
-
                 // make the end statement token a child of the previous token
-                tokenStatement.ChildTokens.Add(tokenEndStatement.CloneMe());
+                tokenPrev.ChildTokens.Add(token.CloneMe());
             }
-            tokensNew.Add(tokenStatement.CloneMe());
-            pos += 2;
+            else
+            {
+                // add the previous token to the tree
+                tokensNew.Add(tokenPrev.CloneMe());
+                tokenPrev = token.CloneMe();
+            }
+            pos++;
         }
+        tokensNew.Add(tokenPrev.CloneMe());
         return tokensNew;
     }
 
@@ -619,16 +628,13 @@ public class RTokenList {
 
         // Edge case: if there is still presentation information not yet added to a tree element
         // (this may happen if the last statement in the script is not terminated 
-        // with a new line or '}')
+        // with a new line or there is a new line after the final '}').
         if (!string.IsNullOrEmpty(prefix))
         {
-            token = new RToken(new RLexeme(""), prefixScriptPos, RToken.TokenTypes.REmpty);
-            tokensNew.Add(token);
-
-            // add a new end statement token that contains the presentation information
-            token = new RToken(new RLexeme(""), prefixScriptPos + (uint)prefix.Length, RToken.TokenTypes.REndStatement);
-            token.ChildTokens.Add(new RToken(new RLexeme(prefix), prefixScriptPos, RToken.TokenTypes.RPresentation));
-            tokensNew.Add(token);
+            // add a new empty token with the presentation info as its child
+            RToken tokenEmpty = new RToken(new RLexeme(""), prefixScriptPos, RToken.TokenTypes.REmpty);
+            tokenEmpty.ChildTokens.Add(new RToken(new RLexeme(prefix), prefixScriptPos, RToken.TokenTypes.RPresentation));
+            tokensNew.Add(tokenEmpty);
         }
 
         return tokensNew;
