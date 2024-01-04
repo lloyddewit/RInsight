@@ -305,13 +305,13 @@ public class RTokenList {
         }
 
         RToken tokenPrev = tokens[0].CloneMe();
+        tokenPrev.ChildTokens = GetTokenTreeEndStatements(tokenPrev.CloneMe().ChildTokens);
+
         int pos = 1;
         while (pos < tokens.Count)
         {
-            tokenPrev.ChildTokens = GetTokenTreeEndStatements(tokenPrev.CloneMe().ChildTokens);
-
             RToken token = tokens[pos];
-            if (token.TokenType == RToken.TokenTypes.REndStatement && token.Lexeme.Text != "}")
+            if (token.TokenType == RToken.TokenTypes.REndStatement)
             {
                 // make the end statement token a child of the previous token
                 tokenPrev.ChildTokens.Add(token.CloneMe());
@@ -321,6 +321,7 @@ public class RTokenList {
                 // add the previous token to the tree
                 tokensNew.Add(tokenPrev.CloneMe());
                 tokenPrev = token.CloneMe();
+                tokenPrev.ChildTokens = GetTokenTreeEndStatements(tokenPrev.CloneMe().ChildTokens);
             }
             pos++;
         }
@@ -366,7 +367,7 @@ public class RTokenList {
     /// <summary>
     /// Constructs a list of token trees generated from <paramref name="tokenList"/>. 
     /// Each item in the list is a recursive token tree that represents a single R statement. 
-    /// Each R statement may contain zero or more substatements.
+    /// Each R statement may contain zero or more child statements.
     /// </summary>
     /// <param name="tokenList">  A one-dimensional list of tokens representing an R script.</param>
     /// <returns>                 A list of token trees generated from <paramref name="tokenList"/>.
@@ -380,7 +381,7 @@ public class RTokenList {
         var tokenTreeFunctions = GetTokenTreeFunctions(tokenTreeCommas);
         var tokenTreeOperators = GetTokenTreeOperators(tokenTreeFunctions);
         var tokenTreeEndStatements = GetTokenTreeEndStatements(tokenTreeOperators);
-        return tokenTreeOperators;
+        return tokenTreeEndStatements;
     }
 
     /// --------------------------------------------------------------------------------------------

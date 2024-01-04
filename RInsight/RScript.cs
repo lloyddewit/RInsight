@@ -1,15 +1,13 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using System.Collections.Specialized;
-using Microsoft.VisualBasic;
-using Microsoft.VisualBasic.CompilerServices;
 
 namespace RInsight;
 /// <summary>
-/// todo
+/// Parses script written in the R programming language and creates a dictionary of R statements. 
+/// If needed, the R script can be regenerated from the dictionary.
 /// </summary>
-public class RScript {
+public class RScript
+{
 
     /// <summary>   
     /// The R statements in the script. The dictionary key is the start position of the statement 
@@ -34,39 +32,22 @@ public class RScript {
     ///                         https://cran.r-project.org/doc/manuals/r-release/R-lang.html 
     ///                         (referenced 01 Feb 2021).</param>
     /// --------------------------------------------------------------------------------------------
-    public RScript(string strInput) {
-        if (string.IsNullOrEmpty(strInput)) {
+    public RScript(string strInput)
+    {
+        if (string.IsNullOrEmpty(strInput))
+        {
             return;
         }
 
-        List<RToken> tokenList = new RTokenList(strInput).Tokens;
+        var tokenList = new RTokenList(strInput);
+        List<RToken> tokens = tokenList.Tokens;
+        List<RToken> tokensFlat = tokenList.TokensFlat;
 
-        int pos = 0;
-        var dctAssignments = new Dictionary<string, RStatement>();
-        while (pos < tokenList.Count) {
-            uint iScriptPos = tokenList[pos].ScriptPosStartStatement;
-            RToken tokenEndStatement;
-            if (pos + 1 < tokenList.Count)
-            {
-                tokenEndStatement = tokenList[pos + 1];
-            }
-            else
-            {
-                tokenEndStatement = new RToken(new RLexeme(""), iScriptPos+1, RToken.TokenTypes.REndStatement);
-            }
-            var clsStatement = new RStatement(tokenList[pos], tokenEndStatement, dctAssignments);
-            pos += 2;
+        foreach (RToken token in tokens)
+        {
+            uint iScriptPos = token.ScriptPosStartStatement;
+            var clsStatement = new RStatement(token, tokensFlat);
             statements.Add(iScriptPos, clsStatement);
-
-            // if the value of an assigned element is new/updated
-            if (!(clsStatement.clsAssignment == null)) {
-                // store the updated/new definition in the dictionary
-                if (dctAssignments.ContainsKey(clsStatement.clsAssignment.strTxt)) {
-                    dctAssignments[clsStatement.clsAssignment.strTxt] = clsStatement;
-                } else {
-                    dctAssignments.Add(clsStatement.clsAssignment.strTxt, clsStatement);
-                }
-            }
         }
     }
 
@@ -78,15 +59,18 @@ public class RScript {
     /// 
     /// <returns>   The current state of this object as a valid, executable R script. </returns>
     /// --------------------------------------------------------------------------------------------
-    public string GetAsExecutableScript(bool bIncludeFormatting = true) {
+    public string GetAsExecutableScript(bool bIncludeFormatting = true)
+    {
         string strTxt = "";
-        foreach (DictionaryEntry entry in statements) {
-            if (entry.Value is null) {
+        foreach (DictionaryEntry entry in statements)
+        {
+            if (entry.Value is null)
+            {
                 throw new Exception("The dictionary entry value cannot be null.");
             }
 
             RStatement rStatement = (RStatement)entry.Value;
-            strTxt += rStatement.GetAsExecutableScript(bIncludeFormatting) + (bIncludeFormatting ? "" : Constants.vbLf);
+            strTxt += bIncludeFormatting ? rStatement.Text : rStatement.TextNoFormatting;
         }
         return strTxt;
     }
