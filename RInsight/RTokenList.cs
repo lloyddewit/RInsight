@@ -1,4 +1,7 @@
-﻿namespace RInsight;
+﻿using System.ComponentModel;
+using System.Diagnostics;
+
+namespace RInsight;
 
 /// --------------------------------------------------------------------------------------------
 /// <summary>
@@ -285,6 +288,49 @@ public class RTokenList {
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
+    /// Traverses the <paramref name="tokens"/> tree. If the token is an end statement then it 
+    /// appends the end statement token to the child list of the previous token. 
+    /// Returns a list of tokens where each top-level token represents a single statement including 
+    /// the statement's end statement token.</summary>
+    /// 
+    /// <param name="tokens">  The token tree to restructure. </param>
+    /// <returns>              A token tree restructured for end statement tokens. </returns>
+    /// --------------------------------------------------------------------------------------------
+    private static List<RToken> GetTokenTreeEndStatements(List<RToken> tokens)
+    {
+        var tokensNew = new List<RToken>();
+        if (tokens.Count < 1)
+        {
+            return tokensNew;
+        }
+
+        RToken tokenPrev = tokens[0].CloneMe();
+        tokenPrev.ChildTokens = GetTokenTreeEndStatements(tokenPrev.CloneMe().ChildTokens);
+
+        int pos = 1;
+        while (pos < tokens.Count)
+        {
+            RToken token = tokens[pos];
+            if (token.TokenType == RToken.TokenTypes.REndStatement)
+            {
+                // make the end statement token a child of the previous token
+                tokenPrev.ChildTokens.Add(token.CloneMe());
+            }
+            else
+            {
+                // add the previous token to the tree
+                tokensNew.Add(tokenPrev.CloneMe());
+                tokenPrev = token.CloneMe();
+                tokenPrev.ChildTokens = GetTokenTreeEndStatements(tokenPrev.CloneMe().ChildTokens);
+            }
+            pos++;
+        }
+        tokensNew.Add(tokenPrev.CloneMe());
+        return tokensNew;
+    }
+
+    /// --------------------------------------------------------------------------------------------
+    /// <summary>
     /// Traverses the <paramref name="tokens"/> tree. If the token is a function name then it makes 
     /// the subsequent '(' a child of the function name token. </summary>
     /// 
@@ -321,7 +367,7 @@ public class RTokenList {
     /// <summary>
     /// Constructs a list of token trees generated from <paramref name="tokenList"/>. 
     /// Each item in the list is a recursive token tree that represents a single R statement. 
-    /// Each R statement may contain zero or more substatements.
+    /// Each R statement may contain zero or more child statements.
     /// </summary>
     /// <param name="tokenList">  A one-dimensional list of tokens representing an R script.</param>
     /// <returns>                 A list of token trees generated from <paramref name="tokenList"/>.
@@ -329,47 +375,13 @@ public class RTokenList {
     /// --------------------------------------------------------------------------------------------
     private static List<RToken> GetTokenTreeList(List<RToken> tokenList)
     {
-        var tokenTreeList = new List<RToken>();
-        int pos = 0;
-        while (pos < tokenList.Count)
-        {
-            // create list of tokens for this statement
-            var statementTokens = new List<RToken>();
-            while (pos < tokenList.Count)
-            {
-                statementTokens.Add(tokenList[pos]);
-                pos++;
-                // we don't add this termination condition to the while statement
-                //   because we also want the token that terminates the statement.
-                if (tokenList[pos - 1].TokenType == RToken.TokenTypes.REndStatement)
-                {
-                    break;
-                }
-            }
-
-            // restructure the statement's token list into a token tree
-            var tokenTreePresentation = GetTokenTreePresentation(statementTokens);
-            var tokenTreeBrackets = GetTokenTreeBrackets(tokenTreePresentation);
-            var tokenTreeCommas = GetTokenTreeCommas(tokenTreeBrackets);
-            var tokenTreeFunctions = GetTokenTreeFunctions(tokenTreeCommas);
-            var tokenTreeOperators = GetTokenTreeOperators(tokenTreeFunctions);
-
-            if (tokenTreeOperators.Count == 0
-                || (tokenTreeOperators.Count == 1 && pos < tokenList.Count)
-                || tokenTreeOperators.Count > 2)
-            {
-                throw new Exception("The token tree for a statement must contain a single token "
-                        + "followed by an endStatement token.\n" 
-                        + "Special case: for the last statement in the script, an endStatement "
-                        + "token is optional.");
-            }
-            tokenTreeList.Add(tokenTreeOperators[0].CloneMe());
-            if (tokenTreeOperators.Count > 1)
-            {
-                tokenTreeList.Add(tokenTreeOperators[1].CloneMe());
-            }
-        }
-        return tokenTreeList;
+        var tokenTreePresentation = GetTokenTreePresentation(tokenList);
+        var tokenTreeBrackets = GetTokenTreeBrackets(tokenTreePresentation);
+        var tokenTreeCommas = GetTokenTreeCommas(tokenTreeBrackets);
+        var tokenTreeFunctions = GetTokenTreeFunctions(tokenTreeCommas);
+        var tokenTreeOperators = GetTokenTreeOperators(tokenTreeFunctions);
+        var tokenTreeEndStatements = GetTokenTreeEndStatements(tokenTreeOperators);
+        return tokenTreeEndStatements;
     }
 
     /// --------------------------------------------------------------------------------------------
@@ -617,16 +629,13 @@ public class RTokenList {
 
         // Edge case: if there is still presentation information not yet added to a tree element
         // (this may happen if the last statement in the script is not terminated 
-        // with a new line or '}')
+        // with a new line or there is a new line after the final '}').
         if (!string.IsNullOrEmpty(prefix))
         {
-            token = new RToken(new RLexeme(""), prefixScriptPos, RToken.TokenTypes.REmpty);
-            tokensNew.Add(token);
-
-            // add a new end statement token that contains the presentation information
-            token = new RToken(new RLexeme(""), prefixScriptPos + (uint)prefix.Length, RToken.TokenTypes.REndStatement);
-            token.ChildTokens.Add(new RToken(new RLexeme(prefix), prefixScriptPos, RToken.TokenTypes.RPresentation));
-            tokensNew.Add(token);
+            // add a new empty token with the presentation info as its child
+            RToken tokenEmpty = new RToken(new RLexeme(""), prefixScriptPos, RToken.TokenTypes.REmpty);
+            tokenEmpty.ChildTokens.Add(new RToken(new RLexeme(prefix), prefixScriptPos, RToken.TokenTypes.RPresentation));
+            tokensNew.Add(tokenEmpty);
         }
 
         return tokensNew;
@@ -697,7 +706,7 @@ public class RTokenList {
         List<RToken> tokensNew = new List<RToken>();
         if (tokenPrev == null)
         {
-            if (tokens.Count > 2
+            if (tokens.Count > 1
                 && tokens[tokens.Count - 1].TokenType == RToken.TokenTypes.ROperatorBracket)
             {
                 // this bracket operator has already been processed so no further action needed

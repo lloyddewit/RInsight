@@ -43,13 +43,24 @@ public class RToken
     /// <summary> The token's children. </summary>
     public List<RToken> ChildTokens { get; internal set; }
 
+    /// <summary>
+    /// True if the token is for human readability (e.g. space, comments etc.), rather
+    /// than functionality.
+    /// </summary>
+    public bool IsPresentation => GetIsPresentation();
+
     /// <summary> The lexeme associated with the token. </summary>
     public RLexeme Lexeme { get; }
 
     /// <summary>
-    /// The start position in the script of the statement represented by this token.
+    /// The start position in the script of the statement associated with this token.
     /// </summary>
     public uint ScriptPosStartStatement => GetPosStartStatement();
+
+    /// <summary>
+    /// The start position in the script of the statement associated with this token.
+    /// </summary>
+    public uint ScriptPosEndStatement => GetPosEndStatement();
 
     /// <summary>   The token type (function name, key word, comment etc.).  </summary>
     public TokenTypes TokenType { get; }
@@ -173,14 +184,7 @@ public class RToken
         }
         else if (lexemeCurrent.IsBracket)
         {
-            if (lexemeCurrent.Text == "}")
-            {
-                TokenType = TokenTypes.REndStatement;
-            }
-            else
-            {
                 TokenType = TokenTypes.RBracket;
-            }
         }
         else if (lexemeCurrent.IsOperatorBrackets)
         {
@@ -216,20 +220,59 @@ public class RToken
     public RToken CloneMe()
     {
         var token = new RToken(Lexeme, _scriptPos, TokenType);
-        foreach (RToken clsTokenChild in ChildTokens)
+        foreach (RToken child in ChildTokens)
         {
-            token.ChildTokens.Add(clsTokenChild.CloneMe());
+            token.ChildTokens.Add(child.CloneMe());
         }
         return token;
+    }
+
+    /// <summary>
+    /// Returns true if token is not part of the functional R script, and its sole purpose is to 
+    /// improve the presentation of the script for human readers. 
+    /// Presentation tokens include comments, spaces, tabs and extra newlines (newlines added for 
+    /// readability rather than to indicate the end of a statement).
+    /// </summary>
+    /// <returns> True if the token is for human readability (e.g. space, comments etc.), rather
+    ///           than functionality.</returns>
+    private bool GetIsPresentation()
+    {
+        switch (TokenType)
+        {
+            case TokenTypes.RPresentation:
+            case TokenTypes.RSpace:
+            case TokenTypes.RComment:
+            case TokenTypes.RNewLine:
+                {
+                    return true;
+                }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Recursively searches the token tree (i.e. this token and its children) for the token with 
+    /// the latest end position in the script. If this token represents an R statement, then this
+    /// will be the end position of the statement.
+    /// </summary>
+    /// <returns>The latest end position in the script of this token or its children.</returns>
+    private uint GetPosEndStatement()
+    {
+        uint posEndStatement = _scriptPos + (uint)Lexeme.Text.Length;
+        foreach (RToken token in ChildTokens)
+        {
+            posEndStatement = Math.Max(posEndStatement, token.GetPosEndStatement());
+        }
+        return posEndStatement;
     }
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
     /// Recursively searches the token tree (i.e. this token and its children) for the token with 
-    /// the earliest start position in the script. If this token represents an R statement, then 
-    /// the start position of the statement is returned.
+    /// the earliest start position in the script. If this token represents an R statement, then this
+    /// will be the start position of the statement.
     /// </summary>
-    /// <returns>The start position in the script of the statement represented by this token.</returns>
+    /// <returns>The earliest start position in the script of this token or its children.</returns>
     /// --------------------------------------------------------------------------------------------
     private uint GetPosStartStatement()
     {
