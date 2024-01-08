@@ -52,10 +52,20 @@ public class RStatement
             if (tokenStartPos >= startPos)
             {
                 Text += tokenFlat.Lexeme.Text;
-                TextNoFormatting += tokenFlat.IsPresentation ? "" : tokenFlat.Lexeme.Text;
+
+                // for non format text, ignore presentation tokens and replace end statements with ;
+                if (tokenFlat.TokenType == RToken.TokenTypes.REndStatement)
+                {
+                    TextNoFormatting += ";";
+                }
+                else if (!tokenFlat.IsPresentation)
+                {
+                    TextNoFormatting += tokenFlat.Lexeme.Text;
+                }
             }
         }
-
+        // remove trailing `;` from TextNoFormatting (only needed to separate internal compound statements)
+        TextNoFormatting = TextNoFormatting.TrimEnd(';');
     }
 
 }
