@@ -353,12 +353,97 @@ public class RTokenList {
                         "The function's parameters have an unexpected format and cannot be processed.");
                 }
                 // make the function's open bracket a child of the function name
-                pos ++;
+                pos++;
                 token.ChildTokens.Add(tokens[pos].CloneMe());
             }
             token.ChildTokens = GetTokenTreeFunctions(token.CloneMe().ChildTokens);
             tokensNew.Add(token.CloneMe());
-            pos ++;
+            pos++;
+        }
+        return tokensNew;
+    }
+
+    /// --------------------------------------------------------------------------------------------
+    /// <summary>
+    /// Traverses the <paramref name="tokens"/> tree. If the token is a key word ("if", "else", 
+    /// "repeat", "while", "function", "for", "in", "next", or "break") then it identifies which of 
+    /// the next tokens are associated with the key word (between 0 and todo depending on the key 
+    /// word). It then makes these associated tokens children of the key word token. </summary>
+    /// 
+    /// <param name="tokens">  The token tree to restructure. </param>
+    /// <returns>              A token tree restructured for key words. </returns>
+    /// --------------------------------------------------------------------------------------------
+    private List<RToken> GetTokenTreeKeyWords(List<RToken> tokens)
+    {
+        var tokensNew = new List<RToken>();
+        int pos = 0;
+        while (pos < tokens.Count)
+        {
+            RToken token = tokens[pos];
+            if (token.TokenType == RToken.TokenTypes.RKeyWord)
+            {
+                switch (token.Lexeme.Text)
+                {
+                    case "if":
+                        {
+                            // if next steps will go out of bounds, then throw developer error
+                            if (pos > tokens.Count - 3)
+                            {
+                                throw new Exception("An 'if' statement needs a condition and a statement.");
+                            }
+
+                            // make the 'if' statement's condition a child of the 'if' statement
+                            pos++;
+                            token.ChildTokens.Add(tokens[pos].CloneMe());
+
+                            // if the 'if' statement's statement is on same line, then make it a child of the 'if' statement
+                            pos++;
+                            if (tokens[pos].TokenType != RToken.TokenTypes.REndStatement)
+                            {
+                                token.ChildTokens.Add(tokens[pos].CloneMe());
+                            }
+                            else
+                            {
+                                // reclassify end statement token as a new line token
+                                RToken tokenNewLine = tokens[pos].CloneMe();
+                                tokenNewLine.SetAsNewLine();
+                                token.ChildTokens.Add(tokenNewLine);
+
+                                var startPos = tokenNewLine.ScriptPosStartStatement;
+                                var tokenFlat = TokensFlat.Find(item => item.ScriptPosStartStatement >= startPos && item.TokenType == RToken.TokenTypes.REndStatement);
+                                if (tokenFlat == null)
+                                {
+                                    throw new Exception("Could not find 'if' statement newline in flat token list.");
+                                }
+                                tokenFlat.SetAsNewLine();
+
+                                if (pos > tokens.Count - 2)
+                                {
+                                    throw new Exception("An 'if' statement needs a condition and a statement after the newline.");
+                                }
+                                // make next statement a child of the 'if' statement
+                                pos++;
+                                token.ChildTokens.Add(tokens[pos].CloneMe());
+                            }
+                            break;
+                        }
+                    case "else": //todo process after if statements?
+                    case "repeat":
+                    case "while":
+                    case "function":
+                    case "for":
+                    case "in":
+                    case "next":
+                    case "break":
+                        {
+                            // do nothing
+                            break;
+                        }
+                }
+            }
+            token.ChildTokens = GetTokenTreeKeyWords(token.CloneMe().ChildTokens);
+            tokensNew.Add(token.CloneMe());
+            pos++;
         }
         return tokensNew;
     }
@@ -373,14 +458,15 @@ public class RTokenList {
     /// <returns>                 A list of token trees generated from <paramref name="tokenList"/>.
     ///                           </returns>
     /// --------------------------------------------------------------------------------------------
-    private static List<RToken> GetTokenTreeList(List<RToken> tokenList)
+    private List<RToken> GetTokenTreeList(List<RToken> tokenList)
     {
         var tokenTreePresentation = GetTokenTreePresentation(tokenList);
         var tokenTreeBrackets = GetTokenTreeBrackets(tokenTreePresentation);
         var tokenTreeCommas = GetTokenTreeCommas(tokenTreeBrackets);
         var tokenTreeFunctions = GetTokenTreeFunctions(tokenTreeCommas);
         var tokenTreeOperators = GetTokenTreeOperators(tokenTreeFunctions);
-        var tokenTreeEndStatements = GetTokenTreeEndStatements(tokenTreeOperators);
+        var tokenTreeKeyWords = GetTokenTreeKeyWords(tokenTreeOperators);
+        var tokenTreeEndStatements = GetTokenTreeEndStatements(tokenTreeKeyWords);
         return tokenTreeEndStatements;
     }
 

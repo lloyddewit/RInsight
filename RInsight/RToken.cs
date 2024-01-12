@@ -63,7 +63,7 @@ public class RToken
     public uint ScriptPosEndStatement => GetPosEndStatement();
 
     /// <summary>   The token type (function name, key word, comment etc.).  </summary>
-    public TokenTypes TokenType { get; }
+    public TokenTypes TokenType { get; private set; }
 
     /// <summary> The position of the lexeme in the script from which the lexeme was extracted. </summary>
     private uint _scriptPos;
@@ -227,6 +227,20 @@ public class RToken
         return token;
     }
 
+    /// --------------------------------------------------------------------------------------------
+    /// <summary>
+    /// Sets the token type to <see cref="TokenTypes.RNewLine"/>.
+    /// This function is needed because the constructor cannot always correctly identify whether 
+    /// a newline is an end statement or just for readability. During later parsing, the correct 
+    /// token type can be identified.
+    /// </summary>
+    /// --------------------------------------------------------------------------------------------
+    public void SetAsNewLine()
+    {
+        TokenType = TokenTypes.RNewLine;
+    }
+
+    /// --------------------------------------------------------------------------------------------
     /// <summary>
     /// Returns true if token is not part of the functional R script, and its sole purpose is to 
     /// improve the presentation of the script for human readers. 
@@ -235,6 +249,7 @@ public class RToken
     /// </summary>
     /// <returns> True if the token is for human readability (e.g. space, comments etc.), rather
     ///           than functionality.</returns>
+    /// --------------------------------------------------------------------------------------------
     private bool GetIsPresentation()
     {
         switch (TokenType)
@@ -250,12 +265,14 @@ public class RToken
         return false;
     }
 
+    /// --------------------------------------------------------------------------------------------
     /// <summary>
     /// Recursively searches the token tree (i.e. this token and its children) for the token with 
     /// the latest end position in the script. If this token represents an R statement, then this
     /// will be the end position of the statement.
     /// </summary>
     /// <returns>The latest end position in the script of this token or its children.</returns>
+    /// --------------------------------------------------------------------------------------------
     private uint GetPosEndStatement()
     {
         uint posEndStatement = _scriptPos + (uint)Lexeme.Text.Length;
