@@ -76,6 +76,61 @@ public class RTokenList {
     }
 
     /// --------------------------------------------------------------------------------------------
+    /// <summary>
+    /// Checks if <paramref name="tokens"/> has enough tokens from position 
+    /// <paramref name="posTokens"/> onwards to form a valid 'if-else' statement.
+    /// Raises an exception if there are not enough tokens, else just returns
+    /// </summary>
+    /// <param name="tokens">    The list of tokens. </param>
+    /// <param name="posTokens"> The position of the current token in the list. </param>
+    /// <exception cref="Exception"></exception>
+    /// --------------------------------------------------------------------------------------------
+    private void CheckIfElseStatement(List<RToken> tokens, int posTokens)
+    {
+        // todo
+        int pos = posTokens + 3; // move to statement after 'if' condition
+
+        if (pos == tokens.Count)
+        {
+            return;
+        }
+
+        if (pos >= tokens.Count)
+        {
+            throw new Exception("An 'if' needs a condition and a statement.");
+        }
+        
+        if (tokens[pos].TokenType != RToken.TokenTypes.REndStatement)
+        {
+            pos++;
+            if (pos == tokens.Count)
+            {
+                return;
+            }
+        }
+
+        if (tokens[pos].Lexeme.Text != "else")
+        {
+            return;
+        }
+
+        pos++;
+        if (pos >= tokens.Count)
+        {
+            throw new Exception("An 'else' needs a statement.");
+        }
+
+        if (tokens[pos].TokenType != RToken.TokenTypes.REndStatement)
+        {
+            pos++;
+            if (pos >= tokens.Count)
+            {
+                throw new Exception("An 'else' needs a statement after the new line.");
+            }
+        }
+    }
+
+    /// --------------------------------------------------------------------------------------------
     /// <summary>   Returns a clone of the next token in the <paramref name="tokens"/> list, 
     ///             after <paramref name="posTokens"/>. If there is no next token then throws 
     ///             an exception.</summary>
@@ -386,11 +441,7 @@ public class RTokenList {
                 {
                     case "if":
                         {
-                            // if next steps will go out of bounds, then throw developer error
-                            if (pos > tokens.Count - 3)
-                            {
-                                throw new Exception("An 'if' statement needs a condition and a statement.");
-                            }
+                            CheckIfElseStatement(tokens, pos);
 
                             // make the 'if' statement's condition a child of the 'if' statement
                             pos++;
@@ -405,25 +456,39 @@ public class RTokenList {
                             else
                             {
                                 // reclassify end statement token as a new line token
-                                RToken tokenNewLine = tokens[pos].CloneMe();
-                                tokenNewLine.SetAsNewLine();
-                                token.ChildTokens.Add(tokenNewLine);
+                                //todo make it the first child of next token instead?
+                                token.ChildTokens.Add(SetEndStatementAsNewLine(tokens[pos]));
 
-                                var startPos = tokenNewLine.ScriptPosStartStatement;
-                                var tokenFlat = TokensFlat.Find(item => item.ScriptPosStartStatement >= startPos && item.TokenType == RToken.TokenTypes.REndStatement);
-                                if (tokenFlat == null)
-                                {
-                                    throw new Exception("Could not find 'if' statement newline in flat token list.");
-                                }
-                                tokenFlat.SetAsNewLine();
-
-                                if (pos > tokens.Count - 2)
-                                {
-                                    throw new Exception("An 'if' statement needs a condition and a statement after the newline.");
-                                }
                                 // make next statement a child of the 'if' statement
                                 pos++;
                                 token.ChildTokens.Add(tokens[pos].CloneMe());
+                            }
+                            // process the 'else' statement if it exists
+                            if ((pos < tokens.Count - 1 && tokens[pos + 1].Lexeme.Text == "else")
+                                || pos < tokens.Count - 2 && tokens[pos + 1].TokenType != RToken.TokenTypes.REndStatement && tokens[pos + 2].Lexeme.Text == "else")
+                            {
+                                pos++;
+                                RToken tokenElse = tokens[pos].CloneMe();
+
+                                // if the 'else' statement's statement is on same line, then make it a child of the 'else' statement
+                                pos++;
+                                if (tokens[pos].TokenType != RToken.TokenTypes.REndStatement)
+                                {
+                                    tokenElse.ChildTokens.Add(tokens[pos].CloneMe());
+                                }
+                                else
+                                {
+                                    // reclassify end statement token as a new line token
+                                    //todo make it the first child of next token instead?
+                                    tokenElse.ChildTokens.Add(SetEndStatementAsNewLine(tokens[pos]));
+
+                                    // make next statement a child of the 'else' statement
+                                    pos++;
+                                    tokenElse.ChildTokens.Add(tokens[pos].CloneMe());
+                                }
+
+                                // add the 'else' statement to the 'if' statement
+                                token.ChildTokens.Add(tokenElse);
                             }
                             break;
                         }
@@ -814,6 +879,29 @@ public class RTokenList {
         tokensNew.AddRange(tokens.GetRange(posFirstNonPresentationChild, tokens.Count - posFirstNonPresentationChild));
 
         return tokensNew;
+    }
+
+    /// <summary>
+    /// todo
+    /// </summary>
+    /// <param name="token"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception">todo</exception>
+    private RToken SetEndStatementAsNewLine(RToken token)
+    {
+        // reclassify end statement token as a new line token
+        RToken tokenNewLine = token.CloneMe();
+        tokenNewLine.SetAsNewLine();
+
+        var startPos = tokenNewLine.ScriptPosStartStatement;
+        var tokenFlat = TokensFlat.Find(item => item.ScriptPosStartStatement >= startPos && item.TokenType == RToken.TokenTypes.REndStatement);
+        if (tokenFlat == null)
+        {
+            throw new Exception("Could not find 'if' statement newline in flat token list.");
+        }
+        tokenFlat.SetAsNewLine();
+
+        return tokenNewLine;
     }
 
 }
