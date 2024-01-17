@@ -85,49 +85,54 @@ public class RTokenList {
     /// <param name="posTokens"> The position of the current token in the list. </param>
     /// <exception cref="Exception"></exception>
     /// --------------------------------------------------------------------------------------------
-    private void CheckIfElseStatement(List<RToken> tokens, int posTokens)
+    private static void CheckIfElseStatement(List<RToken> tokens, int posTokens)
     {
-        // todo
-        int pos = posTokens + 3; // move to statement after 'if' condition
+        // move to statement or 'else' after 'if' condition
+        int pos = posTokens;
+        pos += GetEndStatementJump(tokens, pos); // jump to token after 'if'<-- here
+        pos +=2;                                 // jump to token after 'if(a)b'<-- here
 
-        if (pos == tokens.Count)
+        if (pos > tokens.Count)
+        {
+            throw new Exception("Not enough tokens to complete 'if' statement.");
+        }
+
+        // if 'if' statement is complete (i.e. it has no 'else' component) then return
+        if (pos == tokens.Count || tokens[pos].Lexeme.Text != "else")
         {
             return;
         }
 
-        if (pos >= tokens.Count)
+        pos += GetEndStatementJump(tokens, pos); // jump to token after 'if(a)b else '<-- here
+        GetEndStatementJump(tokens, pos, false); // jump to token after 'if(a)b else c'<-- here
+    }
+
+    /// --------------------------------------------------------------------------------------------
+    /// <summary>   Checks the <paramref name="tokens"/> list from position <paramref name="pos"/>. todo.</summary>
+    /// 
+    /// <param name="tokens">  The list of tokens. </param>
+    /// <param name="pos">     The position of the current token in the list. </param>
+    /// 
+    /// <returns>              The total number of tokens to jump including end statement tokens.</returns>
+    /// --------------------------------------------------------------------------------------------
+    private static int GetEndStatementJump(List<RToken> tokens, int pos, bool mustHaveTokenAfter = true)
+    {
+        int jumpTotal = 1;
+        if (pos + jumpTotal >= tokens.Count)
         {
-            throw new Exception("An 'if' needs a condition and a statement.");
-        }
-        
-        if (tokens[pos].TokenType != RToken.TokenTypes.REndStatement)
-        {
-            pos++;
-            if (pos == tokens.Count)
+            if (mustHaveTokenAfter) 
             {
-                return;
+                throw new Exception("Not enough tokens to legally complete statement."); 
             }
+            return jumpTotal;
         }
-
-        if (tokens[pos].Lexeme.Text != "else")
+        jumpTotal += tokens[pos + jumpTotal].TokenType == RToken.TokenTypes.REndStatement ? 1 : 0;
+        if (pos + jumpTotal >= tokens.Count && mustHaveTokenAfter)
         {
-            return;
+            throw new Exception(
+                    "Not enough tokens after end statement token to legally complete statement.");
         }
-
-        pos++;
-        if (pos >= tokens.Count)
-        {
-            throw new Exception("An 'else' needs a statement.");
-        }
-
-        if (tokens[pos].TokenType != RToken.TokenTypes.REndStatement)
-        {
-            pos++;
-            if (pos >= tokens.Count)
-            {
-                throw new Exception("An 'else' needs a statement after the new line.");
-            }
-        }
+        return jumpTotal;
     }
 
     /// --------------------------------------------------------------------------------------------
@@ -443,9 +448,22 @@ public class RTokenList {
                         {
                             CheckIfElseStatement(tokens, pos);
 
-                            // make the 'if' statement's condition a child of the 'if' statement
+                            // if the 'if' statement's condition is on same line, then make it a child of the 'if' statement
                             pos++;
-                            token.ChildTokens.Add(tokens[pos].CloneMe());
+                            if (tokens[pos].TokenType != RToken.TokenTypes.REndStatement)
+                            {
+                                token.ChildTokens.Add(tokens[pos].CloneMe());
+                            }
+                            else
+                            {
+                                // reclassify end statement token as a new line token and make it first child of next token
+                                RToken tokenNewLine = SetEndStatementAsNewLine(tokens[pos]);
+                                pos++;
+                                RToken tokenNext = tokens[pos].CloneMe();
+                                tokenNext.ChildTokens.Insert(0, tokenNewLine);
+                                token.ChildTokens.Add(tokenNext);
+                            }
+
 
                             // if the 'if' statement's statement is on same line, then make it a child of the 'if' statement
                             pos++;
@@ -455,41 +473,42 @@ public class RTokenList {
                             }
                             else
                             {
-                                // reclassify end statement token as a new line token
-                                //todo make it the first child of next token instead?
-                                token.ChildTokens.Add(SetEndStatementAsNewLine(tokens[pos]));
-
-                                // make next statement a child of the 'if' statement
+                                // reclassify end statement token as a new line token and make it first child of next token
+                                RToken tokenNewLine = SetEndStatementAsNewLine(tokens[pos]);
                                 pos++;
-                                token.ChildTokens.Add(tokens[pos].CloneMe());
+                                RToken tokenNext = tokens[pos].CloneMe();
+                                tokenNext.ChildTokens.Insert(0, tokenNewLine);
+                                token.ChildTokens.Add(tokenNext);
                             }
-                            // process the 'else' statement if it exists
-                            if ((pos < tokens.Count - 1 && tokens[pos + 1].Lexeme.Text == "else")
-                                || pos < tokens.Count - 2 && tokens[pos + 1].TokenType != RToken.TokenTypes.REndStatement && tokens[pos + 2].Lexeme.Text == "else")
+
+                            // if there is no 'else' on the same line as the 'if' statement, then we are done
+                            if (pos == tokens.Count -1 || tokens[pos + 1].Lexeme.Text != "else")
                             {
-                                pos++;
-                                RToken tokenElse = tokens[pos].CloneMe();
-
-                                // if the 'else' statement's statement is on same line, then make it a child of the 'else' statement
-                                pos++;
-                                if (tokens[pos].TokenType != RToken.TokenTypes.REndStatement)
-                                {
-                                    tokenElse.ChildTokens.Add(tokens[pos].CloneMe());
-                                }
-                                else
-                                {
-                                    // reclassify end statement token as a new line token
-                                    //todo make it the first child of next token instead?
-                                    tokenElse.ChildTokens.Add(SetEndStatementAsNewLine(tokens[pos]));
-
-                                    // make next statement a child of the 'else' statement
-                                    pos++;
-                                    tokenElse.ChildTokens.Add(tokens[pos].CloneMe());
-                                }
-
-                                // add the 'else' statement to the 'if' statement
-                                token.ChildTokens.Add(tokenElse);
+                                break;
                             }
+
+                            // create the 'else' token
+                            pos++;
+                            RToken tokenElse = tokens[pos].CloneMe();
+
+                            // if the 'else' statement's statement is on same line, then make it a child of the 'else' statement
+                            pos++;
+                            if (tokens[pos].TokenType != RToken.TokenTypes.REndStatement)
+                            {
+                                tokenElse.ChildTokens.Add(tokens[pos].CloneMe());
+                            }
+                            else
+                            {
+                                // reclassify end statement token as a new line token and make it first child of next token
+                                RToken tokenNewLine = SetEndStatementAsNewLine(tokens[pos]);
+                                pos++;
+                                RToken tokenNext = tokens[pos].CloneMe();
+                                tokenNext.ChildTokens.Insert(0, tokenNewLine);
+                                tokenElse.ChildTokens.Add(tokenNext);
+                            }
+                            // add the 'else' statement to the 'if' statement
+                            token.ChildTokens.Add(tokenElse);
+
                             break;
                         }
                     case "else": //todo process after if statements?
