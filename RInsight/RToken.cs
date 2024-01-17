@@ -90,7 +90,6 @@ public class RToken
         TokenType = tokenType;
     }
 
-
     /// --------------------------------------------------------------------------------------------
     /// <summary>
     ///     Constructs a token from <paramref name="lexemeCurrent"/>. 
@@ -156,17 +155,7 @@ public class RToken
         }
         else if (lexemeCurrent.IsNewLine)
         {
-            if (!statementContainsElement
-                || statementHasOpenBrackets
-                || lexemePrev.IsOperatorUserDefined 
-                || (lexemePrev.IsOperatorReserved && lexemePrev.Text != "~"))
-            {
-                TokenType = TokenTypes.RNewLine;
-            }
-            else
-            {
-                TokenType = TokenTypes.REndStatement;
-            }
+            TokenType = TokenTypes.RNewLine;
         }
         else if (lexemeCurrent.Text == ";")
         {
@@ -229,7 +218,20 @@ public class RToken
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
-    /// Sets the token type to <see cref="TokenTypes.RNewLine"/>.
+    /// Sets the token type to <see cref="TokenTypes.RNewLine"/>.todo
+    /// This function is needed because the constructor cannot always correctly identify whether 
+    /// a newline is an end statement or just for readability. During later parsing, the correct 
+    /// token type can be identified.
+    /// </summary>
+    /// --------------------------------------------------------------------------------------------
+    public void SetAsEndStatement()
+    {
+        TokenType = TokenTypes.REndStatement;
+    }
+
+    /// --------------------------------------------------------------------------------------------
+    /// <summary>
+    /// Sets the token type to <see cref="TokenTypes.RNewLine"/>. todo - still needed?
     /// This function is needed because the constructor cannot always correctly identify whether 
     /// a newline is an end statement or just for readability. During later parsing, the correct 
     /// token type can be identified.

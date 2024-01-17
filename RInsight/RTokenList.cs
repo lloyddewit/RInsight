@@ -544,15 +544,65 @@ public class RTokenList {
     /// --------------------------------------------------------------------------------------------
     private List<RToken> GetTokenTreeList(List<RToken> tokenList)
     {
-        var tokenTreePresentation = GetTokenTreePresentation(tokenList);
-        var tokenTreeBrackets = GetTokenTreeBrackets(tokenTreePresentation);
-        var tokenTreeCommas = GetTokenTreeCommas(tokenTreeBrackets);
+        var tokenTreeBrackets = GetTokenTreeBrackets(tokenList);
+        var tokenTreeNewLines = GetTokenTreeNewLines(tokenTreeBrackets);
+        var tokenTreePresentation = GetTokenTreePresentation(tokenTreeNewLines);
+        var tokenTreeCommas = GetTokenTreeCommas(tokenTreePresentation);
         var tokenTreeFunctions = GetTokenTreeFunctions(tokenTreeCommas);
         var tokenTreeOperators = GetTokenTreeOperators(tokenTreeFunctions);
         var tokenTreeKeyWords = GetTokenTreeKeyWords(tokenTreeOperators);
         var tokenTreeEndStatements = GetTokenTreeEndStatements(tokenTreeKeyWords);
         return tokenTreeEndStatements;
     }
+
+    /// <summary>
+    /// todo
+    /// </summary>
+    /// <param name="tokens"></param>
+    /// <returns></returns>
+    private List<RToken> GetTokenTreeNewLines(List<RToken> tokens, bool inParamList = false)
+    {
+        var tokensNew = new List<RToken>();
+
+        bool statementContainsElement = false;
+        bool tokenPrevIsOperator = false;
+        bool tokenPrevIsFunctionName = false;
+        int posTokens = 0;
+        while (posTokens < tokens.Count)
+        {
+            RToken token = tokens[posTokens];
+            posTokens++;
+
+            if (token.TokenType == RToken.TokenTypes.RNewLine
+                && statementContainsElement
+                && !inParamList
+                && !tokenPrevIsOperator)
+            {
+                token = SetNewLineAsEndStatement(token);
+            }
+            if (token.TokenType == RToken.TokenTypes.REndStatement)
+            {
+                statementContainsElement = false;
+                tokenPrevIsOperator = false;
+                tokenPrevIsFunctionName = false;
+            }
+
+            token.ChildTokens = GetTokenTreeNewLines(token.CloneMe().ChildTokens, tokenPrevIsFunctionName || token.TokenType == RToken.TokenTypes.ROperatorBracket);
+            tokensNew.Add(token.CloneMe());
+
+            if (!token.IsPresentation && token.TokenType != RToken.TokenTypes.REndStatement)
+            {
+                statementContainsElement = true;
+                tokenPrevIsFunctionName = token.TokenType is RToken.TokenTypes.RFunctionName;
+                tokenPrevIsOperator = token.TokenType is RToken.TokenTypes.ROperatorBinary
+                                            || token.TokenType is RToken.TokenTypes.ROperatorUnaryRight;
+            }
+        }
+
+        return tokensNew;
+    }
+
+
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
@@ -908,7 +958,6 @@ public class RTokenList {
     /// <exception cref="Exception">todo</exception>
     private RToken SetEndStatementAsNewLine(RToken token)
     {
-        // reclassify end statement token as a new line token
         RToken tokenNewLine = token.CloneMe();
         tokenNewLine.SetAsNewLine();
 
@@ -916,11 +965,33 @@ public class RTokenList {
         var tokenFlat = TokensFlat.Find(item => item.ScriptPosStartStatement >= startPos && item.TokenType == RToken.TokenTypes.REndStatement);
         if (tokenFlat == null)
         {
-            throw new Exception("Could not find 'if' statement newline in flat token list.");
+            throw new Exception("Could not find expected newline in flat token list.");
         }
         tokenFlat.SetAsNewLine();
 
         return tokenNewLine;
+    }
+
+    /// <summary>
+    /// todo
+    /// </summary>
+    /// <param name="token"></param>
+    /// <returns></returns>
+    /// <exception cref="Exception">todo</exception>
+    private RToken SetNewLineAsEndStatement(RToken token)
+    {
+        RToken tokenEndStatement = token.CloneMe();
+        tokenEndStatement.SetAsEndStatement();
+
+        var startPos = tokenEndStatement.ScriptPosStartStatement;
+        var tokenFlat = TokensFlat.Find(item => item.ScriptPosStartStatement >= startPos && item.TokenType == RToken.TokenTypes.RNewLine);
+        if (tokenFlat == null)
+        {
+            throw new Exception("Could not find expected new line in flat token list.");
+        }
+        tokenFlat.SetAsEndStatement();
+
+        return tokenEndStatement;
     }
 
 }
