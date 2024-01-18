@@ -218,7 +218,7 @@ public class RToken
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
-    /// Sets the token type to <see cref="TokenTypes.RNewLine"/>.todo
+    /// Sets the token type to <see cref="TokenTypes.REndStatement"/>.
     /// This function is needed because the constructor cannot always correctly identify whether 
     /// a newline is an end statement or just for readability. During later parsing, the correct 
     /// token type can be identified.
@@ -231,7 +231,7 @@ public class RToken
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
-    /// Sets the token type to <see cref="TokenTypes.RNewLine"/>. todo - still needed?
+    /// Sets the token type to <see cref="TokenTypes.RNewLine"/>.
     /// This function is needed because the constructor cannot always correctly identify whether 
     /// a newline is an end statement or just for readability. During later parsing, the correct 
     /// token type can be identified.
