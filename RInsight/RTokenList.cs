@@ -1,7 +1,4 @@
-﻿using System.ComponentModel;
-using System.Diagnostics;
-
-namespace RInsight;
+﻿namespace RInsight;
 
 /// --------------------------------------------------------------------------------------------
 /// <summary>
@@ -189,7 +186,9 @@ public class RTokenList {
         RToken tokenNewLine = token.CloneMe();
         tokenNewLine.SetAsNewLine();
         var startPos = tokenNewLine.ScriptPosStartStatement;
-        var tokenFlat = TokensFlat.Find(item => item.ScriptPosStartStatement >= startPos && item.TokenType == RToken.TokenTypes.REndStatement);
+        var tokenFlat = TokensFlat.Find(item => 
+                                        item.ScriptPosStartStatement >= startPos 
+                                        && item.TokenType == RToken.TokenTypes.REndStatement);
         if (tokenFlat == null)
         {
             throw new Exception("Could not find expected end statement in flat token list.");
@@ -856,7 +855,8 @@ public class RTokenList {
                     {
                         if (!string.IsNullOrEmpty(prefix))
                         {
-                            token.ChildTokens.Add(new RToken(new RLexeme(prefix), prefixScriptPos, RToken.TokenTypes.RPresentation));
+                            token.ChildTokens.Add(new RToken(new RLexeme(prefix), prefixScriptPos, 
+                                                             RToken.TokenTypes.RPresentation));
                         }
                         tokensNew.Add(token.CloneMe());
                         prefix = "";
@@ -955,7 +955,8 @@ public class RTokenList {
         }
 
         // if there is a presentation token, then make it the first token in the list
-        int posFirstNonPresentationChild = tokens[0].TokenType == RToken.TokenTypes.RPresentation ? 1 : 0;
+        int posFirstNonPresentationChild = 
+                tokens[0].TokenType == RToken.TokenTypes.RPresentation ? 1 : 0;
         if (posFirstNonPresentationChild == 1)
         {
             tokensNew.Add(tokens[0].CloneMe());
@@ -964,7 +965,8 @@ public class RTokenList {
         tokensNew.Add(tokenPrev.CloneMe());
 
         // make the right-hand operand(s) the next child(ren)
-        tokensNew.AddRange(tokens.GetRange(posFirstNonPresentationChild, tokens.Count - posFirstNonPresentationChild));
+        tokensNew.AddRange(tokens.GetRange(
+                posFirstNonPresentationChild, tokens.Count - posFirstNonPresentationChild));
 
         return tokensNew;
     }
