@@ -76,7 +76,7 @@ public class RScript
             }
             else if (rStatement.TextNoFormatting.Length > 0)
             {
-                strTxt += rStatement.TextNoFormatting + "\n";
+                strTxt += rStatement.TextNoFormatting + ";";
             }
         }
         return strTxt;

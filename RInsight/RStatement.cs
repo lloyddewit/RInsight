@@ -58,9 +58,10 @@ public class RStatement
                 {
                     TextNoFormatting += ";";
                 }
-                else if (tokenFlat.TokenType == RToken.TokenTypes.RKeyWord && tokenFlat.Lexeme.Text == "else")
+                else if (tokenFlat.TokenType == RToken.TokenTypes.RKeyWord 
+                         && (tokenFlat.Lexeme.Text == "else" || tokenFlat.Lexeme.Text == "in"))
                 {
-                    TextNoFormatting += " else ";
+                    TextNoFormatting += " " + tokenFlat.Lexeme.Text + " ";
                 }
                 else if (!tokenFlat.IsPresentation) // ignore presentation tokens
                 {
@@ -69,7 +70,7 @@ public class RStatement
             }
         }
         // remove trailing `;` from TextNoFormatting (only needed to separate internal compound statements)
-        TextNoFormatting = TextNoFormatting.TrimEnd(';');
+        TextNoFormatting = TextNoFormatting.Trim(';');
     }
 
 }
