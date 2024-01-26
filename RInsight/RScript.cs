@@ -45,9 +45,8 @@ public class RScript
 
         foreach (RToken token in tokens)
         {
-            uint iScriptPos = token.ScriptPosStartStatement;
             var clsStatement = new RStatement(token, tokensFlat);
-            statements.Add(iScriptPos, clsStatement);
+            statements.Add(clsStatement.StartPos, clsStatement);
         }
     }
 

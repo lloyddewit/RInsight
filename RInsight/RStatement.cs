@@ -10,6 +10,9 @@ public class RStatement
     /// <summary> True if this statement is an assignment statement (e.g. x <- 1). </summary>
     public bool IsAssignment { get; }
 
+    /// <summary> The position in the script where this statement starts. </summary>
+    public uint StartPos { get; }
+
     /// <summary>
     /// The text representation of this statement, including all formatting information (comments,
     /// spaces, extra newlines etc.).
@@ -37,38 +40,65 @@ public class RStatement
         var assignments = new HashSet<string> { "->", "->>", "<-", "<<-", "=" };
         IsAssignment = token.TokenType == RToken.TokenTypes.ROperatorBinary && assignments.Contains(token.Lexeme.Text);
 
-        uint startPos = token.ScriptPosStartStatement;
+        StartPos = token.ScriptPosStartStatement;
         uint endPos = token.ScriptPosEndStatement;
+        int firstNewLineIndex = 0;
+        bool tokenPrevIsEndStatement = false;
         Text = "";
         TextNoFormatting = "";
         foreach (RToken tokenFlat in tokensFlat)
         {
             uint tokenStartPos = tokenFlat.ScriptPosStartStatement;
+            if (tokenStartPos < StartPos)
+            {
+                tokenPrevIsEndStatement = tokenFlat.TokenType == RToken.TokenTypes.REndStatement;
+                continue;
+            }
             if (tokenStartPos >= endPos)
             {
                 break;
             }
 
-            if (tokenStartPos >= startPos)
+            // edge case: todo
+            string tokenText = tokenFlat.Lexeme.Text;
+            if (Text == "" 
+                && !tokenPrevIsEndStatement
+                && tokenFlat.IsPresentation                 
+                && tokenFlat.Lexeme.Text.Length > 0)
             {
-                Text += tokenFlat.Lexeme.Text;
-
-                // for non format text, ignore presentation tokens and replace end statements with ;
-                if (tokenFlat.TokenType == RToken.TokenTypes.REndStatement)
+                firstNewLineIndex = Math.Min(tokenText.IndexOf("\r"), tokenText.IndexOf("\n"));
+                if (firstNewLineIndex > -1)
                 {
-                    TextNoFormatting += ";";
-                }
-                else if (tokenFlat.TokenType == RToken.TokenTypes.RKeyWord 
-                         && (tokenFlat.Lexeme.Text == "else" || tokenFlat.Lexeme.Text == "in"))
-                {
-                    TextNoFormatting += " " + tokenFlat.Lexeme.Text + " ";
-                }
-                else if (!tokenFlat.IsPresentation) // ignore presentation tokens
-                {
-                    TextNoFormatting += tokenFlat.Lexeme.Text;
+                    tokenText = tokenText.Substring(firstNewLineIndex);
+                    if (tokenText.StartsWith("\r\n"))
+                    {
+                        tokenText = tokenText.Substring(1);
+                        firstNewLineIndex++;
+                    }
+                    tokenText = tokenText.Substring(1);
+                    firstNewLineIndex++;
                 }
             }
+
+            Text += tokenText;
+            tokenPrevIsEndStatement = tokenFlat.TokenType == RToken.TokenTypes.REndStatement;
+
+            // for non format text, ignore presentation tokens and replace end statements with ;
+            if (tokenFlat.TokenType == RToken.TokenTypes.REndStatement)
+            {
+                TextNoFormatting += ";";
+            }
+            else if (tokenFlat.TokenType == RToken.TokenTypes.RKeyWord
+                     && (tokenFlat.Lexeme.Text == "else" || tokenFlat.Lexeme.Text == "in"))
+            {
+                TextNoFormatting += " " + tokenFlat.Lexeme.Text + " ";
+            }
+            else if (!tokenFlat.IsPresentation) // ignore presentation tokens
+            {
+                TextNoFormatting += tokenFlat.Lexeme.Text;
+            }
         }
+        StartPos += (uint)Math.Max(firstNewLineIndex, 0);
         // remove trailing `;` from TextNoFormatting (only needed to separate internal compound statements)
         TextNoFormatting = TextNoFormatting.Trim(';');
     }
