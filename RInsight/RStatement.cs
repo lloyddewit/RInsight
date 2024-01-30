@@ -27,80 +27,111 @@ public class RStatement
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
-    /// Constructs an object representing a valid R statement from the <paramref name="token"/> 
+    /// todo move down in class
+    /// todo return position after the first newline or carriage return ('n', '\r' or '\r\n'). If neither is found, then return 0.
+    /// Examples:<para>
+    /// '' returns -1</para><para>
+    /// '\n' returns 1</para><para>
+    /// 'a' returns -1</para><para>
+    /// 'a\r' returns 2</para><para>
+    /// 'a\n" returns 2</para><para>
+    /// "a\r\n" returns 3</para><para>
+    /// "a\r\nb" returns 3</para><para>
+    /// "abc\r\nd" returns 5</para><para>
+    /// "abc\r\ndef" returns 5</para>
+    /// </summary>
+    /// <param name="text"></param>
+    /// <returns></returns>
+    /// --------------------------------------------------------------------------------------------
+    private int GetPresentationSplitPos(string text)
+    {
+        int posNewLine = text.IndexOf("\n");
+        int posCarriageReturn = text.IndexOf("\r");
+
+        if (posNewLine == -1 && posCarriageReturn == -1) return 0;
+        if (posNewLine == -1) return posCarriageReturn + 1;
+        if (posCarriageReturn == -1) return posNewLine + 1;
+
+        int pos = Math.Min(posNewLine, posCarriageReturn);
+        if (text.Substring(pos).StartsWith("\r\n"))
+        {
+            pos++;
+        }
+        return pos + 1;
+    }
+
+    /// --------------------------------------------------------------------------------------------
+    /// <summary>
+    /// Constructs an object representing a valid R statement from the <paramref name="tokenTree"/> 
     /// token tree. </summary>
     /// 
-    /// <param name="token">      The tree of R tokens to process </param>
+    /// <param name="tokenTree">      The tree of R tokens to process </param>
     /// <param name="tokensFlat"> A one-dimensional list of all the tokens in the script 
-    ///                           containing <paramref name="token"/> (useful for conveniently 
+    ///                           containing <paramref name="tokenTree"/> (useful for conveniently 
     ///                           reconstructing the text representation of the statement).</param>
     /// --------------------------------------------------------------------------------------------
-    public RStatement(RToken token, List<RToken> tokensFlat)
+    public RStatement(RToken tokenTree, List<RToken> tokensFlat)
     {
         var assignments = new HashSet<string> { "->", "->>", "<-", "<<-", "=" };
-        IsAssignment = token.TokenType == RToken.TokenTypes.ROperatorBinary && assignments.Contains(token.Lexeme.Text);
+        IsAssignment = tokenTree.TokenType == RToken.TokenTypes.ROperatorBinary && assignments.Contains(tokenTree.Lexeme.Text);
 
-        StartPos = token.ScriptPosStartStatement;
-        uint endPos = token.ScriptPosEndStatement;
-        int firstNewLineIndex = 0;
-        bool tokenPrevIsEndStatement = false;
+        StartPos = tokenTree.ScriptPosStartStatement;
+        uint endPos = tokenTree.ScriptPosEndStatement;
+        int startPosAdjustment = 0;
+        bool firstTokenInStatement = true;
         Text = "";
         TextNoFormatting = "";
-        foreach (RToken tokenFlat in tokensFlat)
+        foreach (RToken token in tokensFlat)
         {
-            uint tokenStartPos = tokenFlat.ScriptPosStartStatement;
+            uint tokenStartPos = token.ScriptPosStartStatement;
             if (tokenStartPos < StartPos)
             {
-                tokenPrevIsEndStatement = tokenFlat.TokenType == RToken.TokenTypes.REndStatement;
                 continue;
             }
+            string tokenText = token.Lexeme.Text;
             if (tokenStartPos >= endPos)
             {
+                //todo check if this token has some presentation text that belongs with the current statement
+                if (token.IsPresentation
+                    && tokenText.Length > 0)
+                {
+                    int splitPos = GetPresentationSplitPos(tokenText);
+                    tokenText = tokenText.Substring(0, splitPos);
+                    Text += tokenText;
+                }
                 break;
             }
 
-            // edge case: todo
-            string tokenText = tokenFlat.Lexeme.Text;
-            if (Text == "" 
-                && !tokenPrevIsEndStatement
-                && tokenFlat.IsPresentation                 
-                && tokenFlat.Lexeme.Text.Length > 0)
+            // edge case: todo ignore any presentation characters that belong to the previous statement
+            if (firstTokenInStatement 
+                && token.IsPresentation                 
+                && tokenText.Length > 0)
             {
-                firstNewLineIndex = Math.Min(tokenText.IndexOf("\r"), tokenText.IndexOf("\n"));
-                if (firstNewLineIndex > -1)
-                {
-                    tokenText = tokenText.Substring(firstNewLineIndex);
-                    if (tokenText.StartsWith("\r\n"))
-                    {
-                        tokenText = tokenText.Substring(1);
-                        firstNewLineIndex++;
-                    }
-                    tokenText = tokenText.Substring(1);
-                    firstNewLineIndex++;
-                }
+                int splitPos = GetPresentationSplitPos(tokenText);
+                tokenText = tokenText.Substring(splitPos);
+                startPosAdjustment = splitPos;
             }
-
+            firstTokenInStatement = false;
             Text += tokenText;
-            tokenPrevIsEndStatement = tokenFlat.TokenType == RToken.TokenTypes.REndStatement;
 
             // for non format text, ignore presentation tokens and replace end statements with ;
-            if (tokenFlat.TokenType == RToken.TokenTypes.REndStatement)
+            if (token.TokenType == RToken.TokenTypes.REndStatement)
             {
                 TextNoFormatting += ";";
             }
-            else if (tokenFlat.TokenType == RToken.TokenTypes.RKeyWord
-                     && (tokenFlat.Lexeme.Text == "else" || tokenFlat.Lexeme.Text == "in"))
+            else if (token.TokenType == RToken.TokenTypes.RKeyWord
+                     && (tokenText == "else" || tokenText == "in"))
             {
-                TextNoFormatting += " " + tokenFlat.Lexeme.Text + " ";
+                TextNoFormatting += " " + tokenText + " ";
             }
-            else if (!tokenFlat.IsPresentation) // ignore presentation tokens
+            else if (!token.IsPresentation) // ignore presentation tokens
             {
-                TextNoFormatting += tokenFlat.Lexeme.Text;
+                TextNoFormatting += tokenText;
             }
         }
-        StartPos += (uint)Math.Max(firstNewLineIndex, 0);
         // remove trailing `;` from TextNoFormatting (only needed to separate internal compound statements)
         TextNoFormatting = TextNoFormatting.Trim(';');
+        StartPos += (uint)startPosAdjustment;
     }
 
 }
