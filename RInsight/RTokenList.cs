@@ -34,7 +34,7 @@ public class RTokenList {
             new string[] { "$", "@" },
             new string[] { "[", "[[" }, // bracket operators
             new string[] { "^" },       // right to left precedence
-            new string[] { "-", "+" },  // unary operarors
+            new string[] { "-", "+" },  // unary operators
             new string[] { ":" },
             new string[] { "%" },       // any operator that starts with '%' (including user-defined operators)
             new string[] { "|>" },
@@ -441,7 +441,7 @@ public class RTokenList {
                     //if child's lexeme text ends in newline, then it is an end statement
                     if (token.ChildTokens[0].Lexeme.Text.EndsWith("\n") || token.ChildTokens[0].Lexeme.Text.EndsWith("\r"))
                     {
-                        SetNewLineAsEndStatement(token.ChildTokens[0]);
+                        token.ChildTokens[0] = SetNewLineAsEndStatement(token.ChildTokens[0]);
                     }
                 }
             }
@@ -634,6 +634,7 @@ public class RTokenList {
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
+    /// todo delete?
     /// Traverses the tree of tokens in <paramref name="tokens"/>. If a newline token is found, 
     /// then checks to see if the newline token should be an end statement token. If so, then it 
     /// reclassifies the newline token as an end statement token.

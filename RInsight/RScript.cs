@@ -46,6 +46,12 @@ public class RScript
         foreach (RToken token in tokens)
         {
             var clsStatement = new RStatement(token, tokensFlat);
+
+            // Edge case: if the last statement in the script ends with a new line, and there is
+            //     no comments or other text after it, then the statement will be empty. In this
+            //     case, don't add it to the list of statements.
+            if (clsStatement.Text.Length == 0) break;
+            
             statements.Add(clsStatement.StartPos, clsStatement);
         }
     }
@@ -78,6 +84,14 @@ public class RScript
                 strTxt += rStatement.TextNoFormatting + ";";
             }
         }
+
+        // if no formatting needed, then remove trailing `;` from script
+        //     (only needed to separate previous statements).
+        if (!bIncludeFormatting)
+        {
+            strTxt = strTxt.TrimEnd(';');
+        }
+
         return strTxt;
     }
 

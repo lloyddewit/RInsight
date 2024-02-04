@@ -78,7 +78,8 @@ public class RStatement
         StartPos = tokenTree.ScriptPosStartStatement;
         uint endPos = tokenTree.ScriptPosEndStatement;
         int startPosAdjustment = 0;
-        bool firstTokenInStatement = true;
+        bool tokenPrevIsEndStatement = false;
+        bool firstNewLineFound = false;
         Text = "";
         TextNoFormatting = "";
         foreach (RToken token in tokensFlat)
@@ -86,33 +87,50 @@ public class RStatement
             uint tokenStartPos = token.ScriptPosStartStatement;
             if (tokenStartPos < StartPos)
             {
+                tokenPrevIsEndStatement = token.TokenType == RToken.TokenTypes.REndStatement;
                 continue;
             }
             string tokenText = token.Lexeme.Text;
             if (tokenStartPos >= endPos)
             {
                 //todo check if this token has some presentation text that belongs with the current statement
-                if (token.IsPresentation
+                if (!tokenPrevIsEndStatement
+                    && (token.IsPresentation || token.Lexeme.IsNewLine) //todo need 2nd part of check because some newlines are endstatements
                     && tokenText.Length > 0)
                 {
-                    int splitPos = GetPresentationSplitPos(tokenText);
-                    tokenText = tokenText.Substring(0, splitPos);
+                    //int splitPos = GetPresentationSplitPos(tokenText);
+                    //tokenText = tokenText.Substring(0, splitPos);
                     Text += tokenText;
+                    if (token.Lexeme.IsNewLine)
+                    {
+                        TextNoFormatting += ";";
+                        break;
+                    }
+                    continue;
                 }
                 break;
             }
 
             // edge case: todo ignore any presentation characters that belong to the previous statement
-            if (firstTokenInStatement 
-                && token.IsPresentation                 
+            if (Text == ""
+                && StartPos != 0
+                && !tokenPrevIsEndStatement 
+                && !firstNewLineFound
+                && (token.IsPresentation || token.Lexeme.IsNewLine) //todo need 2nd part of check because some newlines are endstatements                 
                 && tokenText.Length > 0)
             {
-                int splitPos = GetPresentationSplitPos(tokenText);
-                tokenText = tokenText.Substring(splitPos);
-                startPosAdjustment = splitPos;
+                if (token.Lexeme.IsNewLine)
+                {
+                    firstNewLineFound = true;
+                }
+                startPosAdjustment += tokenText.Length;
+                tokenText = "";
+                //int splitPos = GetPresentationSplitPos(tokenText);
+                //tokenText = tokenText.Substring(splitPos);
+                //startPosAdjustment = splitPos;
             }
-            firstTokenInStatement = false;
             Text += tokenText;
+            tokenPrevIsEndStatement = token.TokenType == RToken.TokenTypes.REndStatement;
 
             // for non format text, ignore presentation tokens and replace end statements with ;
             if (token.TokenType == RToken.TokenTypes.REndStatement)
@@ -130,7 +148,7 @@ public class RStatement
             }
         }
         // remove trailing `;` from TextNoFormatting (only needed to separate internal compound statements)
-        TextNoFormatting = TextNoFormatting.Trim(';');
+        // todo TextNoFormatting = TextNoFormatting.Trim(';');
         StartPos += (uint)startPosAdjustment;
     }
 
