@@ -65,8 +65,8 @@ public class RToken
     /// <summary>   The token type (function name, key word, comment etc.).  </summary>
     public TokenTypes TokenType { get; private set; }
 
-    /// <summary> The position of the lexeme in the script from which the lexeme was extracted. </summary>
-    private uint _scriptPos;
+    /// <summary> The position of the lexeme in the script from which the lexeme was extracted. todo reorder and make read only</summary>
+    public uint ScriptPos;
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
@@ -86,7 +86,7 @@ public class RToken
     {
         ChildTokens = new List<RToken>();
         Lexeme = lexeme;
-        _scriptPos = scriptPos;
+        ScriptPos = scriptPos;
         TokenType = tokenType;
     }
 
@@ -128,7 +128,7 @@ public class RToken
 
         Lexeme = lexemeCurrent;
         ChildTokens = new List<RToken>();
-        _scriptPos = scriptPosNew;
+        ScriptPos = scriptPosNew;
 
         if (lexemeCurrent.IsKeyWord)
         {
@@ -208,7 +208,7 @@ public class RToken
     /// --------------------------------------------------------------------------------------------
     public RToken CloneMe()
     {
-        var token = new RToken(Lexeme, _scriptPos, TokenType);
+        var token = new RToken(Lexeme, ScriptPos, TokenType);
         foreach (RToken child in ChildTokens)
         {
             token.ChildTokens.Add(child.CloneMe());
@@ -277,7 +277,7 @@ public class RToken
     /// --------------------------------------------------------------------------------------------
     private uint GetPosEndStatement()
     {
-        uint posEndStatement = _scriptPos + (uint)Lexeme.Text.Length;
+        uint posEndStatement = ScriptPos + (uint)Lexeme.Text.Length;
         foreach (RToken token in ChildTokens)
         {
             posEndStatement = Math.Max(posEndStatement, token.GetPosEndStatement());
@@ -295,7 +295,7 @@ public class RToken
     /// --------------------------------------------------------------------------------------------
     private uint GetPosStartStatement()
     {
-        uint posStartStatement = _scriptPos;
+        uint posStartStatement = ScriptPos;
         foreach (RToken token in ChildTokens)
         {
             posStartStatement = Math.Min(posStartStatement, token.GetPosStartStatement());

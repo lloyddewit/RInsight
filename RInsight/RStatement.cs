@@ -84,6 +84,9 @@ public class RStatement
         TextNoFormatting = "";
         foreach (RToken token in tokensFlat)
         {
+            //todo
+            if (token.TokenType == RToken.TokenTypes.REmpty) continue;
+
             uint tokenStartPos = token.ScriptPosStartStatement;
             if (tokenStartPos < StartPos)
             {
@@ -148,7 +151,7 @@ public class RStatement
             }
         }
         // remove trailing `;` from TextNoFormatting (only needed to separate internal compound statements)
-        // todo TextNoFormatting = TextNoFormatting.Trim(';');
+        TextNoFormatting = TextNoFormatting.Trim(';');
         StartPos += (uint)startPosAdjustment;
     }
 

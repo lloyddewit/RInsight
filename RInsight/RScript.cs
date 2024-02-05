@@ -15,7 +15,7 @@ public class RScript
     public OrderedDictionary statements = new OrderedDictionary();
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Parses the R script in <paramref name="strInput"/> and populates the distionary
+    /// <summary>   Parses the R script in <paramref name="strInput"/> and populates the dictionary
     ///             of R statements.
     ///             <para>
     ///             This subroutine will accept, and correctly process all valid R. However, this 
