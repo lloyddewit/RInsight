@@ -556,6 +556,49 @@ public class RTokenList {
         return tokensNew;
     }
 
+    /// <summary>
+    /// todo also order
+    /// </summary>
+    /// <param name="tokens"></param>
+    /// <param name="pos"></param>
+    /// <returns></returns>
+    private List<RToken> GetKeyWordStatementChildren(List <RToken> tokens, ref int pos)
+    {
+        List <RToken> tokensNew = new List<RToken>();
+        RToken token = tokens[pos];
+        List<string> keywordsWithOnePart = new List<string> { "repeat", "else" };
+        List<string> keywordsWithTwoParts = new List<string> { "if", "for", "while", "function" };
+
+        bool tokenHasOnePart = token.TokenType == RToken.TokenTypes.RKeyWord && keywordsWithOnePart.Contains(token.Lexeme.Text);
+        bool tokenHasTwoParts = token.TokenType == RToken.TokenTypes.RKeyWord && keywordsWithTwoParts.Contains(token.Lexeme.Text);
+
+        while (tokenHasOnePart || tokenHasTwoParts)
+        {
+            token = GetNextTokenNotEndStatement(tokens, ref pos);
+            tokensNew.Add(token);
+
+            if (tokenHasTwoParts)
+            {
+                token = GetNextTokenNotEndStatement(tokens, ref pos);
+                tokensNew.Add(token);
+
+                //if next token is "else"
+                if (pos < tokens.Count-1 && tokens[pos+1].Lexeme.Text == "else")
+                {
+                    token = GetNextTokenNotEndStatement(tokens, ref pos);
+                    tokensNew.Add(token);
+                    token = GetNextTokenNotEndStatement(tokens, ref pos);
+                    tokensNew.Add(token);
+                }
+            }
+
+            tokenHasOnePart = token.TokenType == RToken.TokenTypes.RKeyWord && keywordsWithOnePart.Contains(token.Lexeme.Text);
+            tokenHasTwoParts = token.TokenType == RToken.TokenTypes.RKeyWord && keywordsWithTwoParts.Contains(token.Lexeme.Text);
+        }
+
+        return tokensNew;
+    }
+
     /// --------------------------------------------------------------------------------------------
     /// <summary>
     /// Traverses the <paramref name="tokens"/> tree. If the token is a key word ("if", "else", 
@@ -581,37 +624,38 @@ public class RTokenList {
                         {
                             CheckIfElseStatement(tokens, pos);
 
-                            // make the 'if' statement's condition a child of the 'if' statement
-                            token.ChildTokens.Add(GetNextTokenNotEndStatement(tokens, ref pos));
-
-
-                            // make the 'if' statement's statement a child of the 'if' statement
-                            token.ChildTokens.Add(GetNextTokenNotEndStatement(tokens, ref pos));
-
+                            // make the 'if' statement's condition and statement children of the 'if' token
+                            //todo
+                            token.ChildTokens.AddRange(GetKeyWordStatementChildren(tokens, ref pos));
+                            
                             // if there is no 'else' on the same line as the 'if' statement,
                             //     then we are done
-                            if (pos == tokens.Count -1 || tokens[pos + 1].Lexeme.Text != "else")
-                            {
-                                break;
-                            }
+                            //if (pos == tokens.Count -1 || tokens[pos + 1].Lexeme.Text != "else")
+                            //{
+                            //    break;
+                            //}
 
-                            // create the 'else' token
-                            pos++;
-                            RToken tokenElse = tokens[pos].CloneMe();
+                            //// create the 'else' token
+                            //pos++;
+                            //RToken tokenElse = tokens[pos].CloneMe();
 
-                            // make the 'else' statement's statement a child of the 'else' statement
-                            tokenElse.ChildTokens.Add(GetNextTokenNotEndStatement(tokens, ref pos));
+                            //// make the 'else' statement's statement a child of the 'else' statement
+                            //tokenElse.ChildTokens.AddRange(GetKeyWordStatementChildren(tokens, ref pos));
 
-                            // make the 'else' statement a child of the 'if' statement
-                            token.ChildTokens.Add(tokenElse);
+                            //// make the 'else' statement a child of the 'if' statement
+                            //token.ChildTokens.Add(tokenElse);
                             break;
                         }
+                    case "else":
+                        {
+                            token.ChildTokens.AddRange(GetKeyWordStatementChildren(tokens, ref pos));
+                            break;
+                        }                        
                     case "for":
                         {
                             CheckForLoop(tokens, pos);
                             // make the 'for' loop's condition and statement children of the 'for' token
-                            token.ChildTokens.Add(GetNextTokenNotEndStatement(tokens, ref pos));
-                            token.ChildTokens.Add(GetNextTokenNotEndStatement(tokens, ref pos));
+                            token.ChildTokens.AddRange(GetKeyWordStatementChildren(tokens, ref pos));
                             break;
                         }
                     case "repeat":
@@ -626,7 +670,6 @@ public class RTokenList {
                         {
                             break;
                         }
-                    case "else":  // ignore, already processed by 'if'
                     case "in":    // ignore, already processed by 'for'
                     case "next":  // ignore, no action needed
                     case "break": // ignore, no action needed
