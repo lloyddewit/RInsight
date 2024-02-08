@@ -141,7 +141,7 @@ public class RStatement
                 TextNoFormatting += ";";
             }
             else if (token.TokenType == RToken.TokenTypes.RKeyWord
-                     && (tokenText == "else" || tokenText == "in"))
+                     && (tokenText == "else" || tokenText == "in" || tokenText == "repeat"))
             {
                 TextNoFormatting += " " + tokenText + " ";
             }

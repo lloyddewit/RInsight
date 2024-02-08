@@ -74,7 +74,7 @@ public class RTokenList {
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
-    /// Checks if <paramref name="tokens"/> has enough tokens from position 
+    /// Checks if <paramref name="tokens"/> has enough tokens from position todo delete?
     /// <paramref name="posTokens"/> onwards to form a valid 'if-else' statement.
     /// Raises an exception if there are not enough tokens, else just returns
     /// </summary>
@@ -97,7 +97,7 @@ public class RTokenList {
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
-    /// Checks if <paramref name="tokens"/> has enough tokens from position 
+    /// Checks if <paramref name="tokens"/> has enough tokens from position todo delete?
     /// <paramref name="posTokens"/> onwards to form a valid 'if-else' statement.
     /// Raises an exception if there are not enough tokens, else just returns
     /// </summary>
@@ -183,7 +183,7 @@ public class RTokenList {
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>
+    /// <summary> todo delete?
     /// Returns the next token in the <paramref name="tokens"/> list, after <paramref name="pos"/>.
     /// If the next token is an end statement, then reclassifies it as a new line token and makes 
     /// it the first child of the next token.
@@ -196,7 +196,7 @@ public class RTokenList {
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     /// --------------------------------------------------------------------------------------------
-    private RToken GetNextTokenNotEndStatement(List<RToken> tokens, ref int pos)
+    private static RToken GetNextTokenNotEndStatement(List<RToken> tokens, ref int pos)
     {
         RToken token = GetNextToken(tokens, pos);
         pos++;
@@ -562,7 +562,7 @@ public class RTokenList {
     /// <param name="tokens"></param>
     /// <param name="pos"></param>
     /// <returns></returns>
-    private List<RToken> GetKeyWordStatementChildren(List <RToken> tokens, ref int pos)
+    private static List<RToken> GetKeyWordStatementChildren(List <RToken> tokens, ref int pos)
     {
         List <RToken> tokensNew = new List<RToken>();
         RToken token = tokens[pos];
@@ -574,20 +574,24 @@ public class RTokenList {
 
         while (tokenHasOnePart || tokenHasTwoParts)
         {
-            token = GetNextTokenNotEndStatement(tokens, ref pos);
+            token = GetNextToken(tokens, pos);
+            pos++;
             tokensNew.Add(token);
 
             if (tokenHasTwoParts)
             {
-                token = GetNextTokenNotEndStatement(tokens, ref pos);
+                token = GetNextToken(tokens, pos);
+                pos++;
                 tokensNew.Add(token);
 
                 //if next token is "else"
                 if (pos < tokens.Count-1 && tokens[pos+1].Lexeme.Text == "else")
                 {
-                    token = GetNextTokenNotEndStatement(tokens, ref pos);
+                    token = GetNextToken(tokens, pos);
+                    pos++;
                     tokensNew.Add(token);
-                    token = GetNextTokenNotEndStatement(tokens, ref pos);
+                    token = GetNextToken(tokens, pos);
+                    pos++;
                     tokensNew.Add(token);
                 }
             }
@@ -622,7 +626,7 @@ public class RTokenList {
                 {
                     case "if":
                         {
-                            CheckIfElseStatement(tokens, pos);
+                            //CheckIfElseStatement(tokens, pos);
 
                             // make the 'if' statement's condition and statement children of the 'if' token
                             //todo
@@ -653,21 +657,24 @@ public class RTokenList {
                         }                        
                     case "for":
                         {
-                            CheckForLoop(tokens, pos);
+                            //CheckForLoop(tokens, pos);
                             // make the 'for' loop's condition and statement children of the 'for' token
                             token.ChildTokens.AddRange(GetKeyWordStatementChildren(tokens, ref pos));
                             break;
                         }
                     case "repeat":
                         {
+                            token.ChildTokens.AddRange(GetKeyWordStatementChildren(tokens, ref pos));
                             break;
                         }
                     case "while":
                         {
+                            token.ChildTokens.AddRange(GetKeyWordStatementChildren(tokens, ref pos));
                             break;
                         }
                     case "function":
                         {
+                            token.ChildTokens.AddRange(GetKeyWordStatementChildren(tokens, ref pos));
                             break;
                         }
                     case "in":    // ignore, already processed by 'for'
@@ -1080,22 +1087,32 @@ public class RTokenList {
         RToken.TokenTypes tokenType = tokens[posTokens].TokenType;
         string tokenText = tokens[posTokens].Lexeme.Text ?? "";
 
-        // make the previous and next tokens, the children of the current token
+        // make the previous token, a child of the current token
         childTokens.Add(tokenPrev.CloneMe());
-        childTokens.Add(GetNextToken(tokens, posTokens));
+
+        // make the next token, a child of the current token
+        RToken tokenNext = GetNextToken(tokens, posTokens);
+        childTokens.Add(tokenNext);
         posTokens++;
+        //todo edge case: if next token was a keyword, then we may need to also add the keyword's associated condition and statement
+        childTokens.AddRange(GetKeyWordStatementChildren(tokens, ref posTokens));
+        
         // while next token is the same operator (e.g. 'a+b+c+d...'), 
         // then keep making the next token, the child of the current operator token
         while (posTokens < tokens.Count - 1)
         {
-            RToken tokenNext = GetNextToken(tokens, posTokens);
+            tokenNext = GetNextToken(tokens, posTokens);
             if (tokenType != tokenNext.TokenType || tokenText != tokenNext.Lexeme.Text)
             {
                 break;
             }
             posTokens++;
-            childTokens.Add(GetNextToken(tokens, posTokens));
+
+            tokenNext = GetNextToken(tokens, posTokens);
+            childTokens.Add(tokenNext);
             posTokens++;
+            //todo edge case: if next token was a keyword, then we may need to also add the keyword's associated condition and statement
+            childTokens.AddRange(GetKeyWordStatementChildren(tokens, ref posTokens));
         }
         return childTokens;
     }
