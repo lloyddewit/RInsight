@@ -15,7 +15,7 @@ public class RScript
     public OrderedDictionary statements = new OrderedDictionary();
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Parses the R script in <paramref name="strInput"/> and populates the distionary
+    /// <summary>   Parses the R script in <paramref name="strInput"/> and populates the dictionary
     ///             of R statements.
     ///             <para>
     ///             This subroutine will accept, and correctly process all valid R. However, this 
@@ -45,9 +45,14 @@ public class RScript
 
         foreach (RToken token in tokens)
         {
-            uint iScriptPos = token.ScriptPosStartStatement;
             var clsStatement = new RStatement(token, tokensFlat);
-            statements.Add(iScriptPos, clsStatement);
+
+            // Edge case: if the last statement in the script ends with a new line, and there is
+            //     no comments or other text after it, then the statement will be empty. In this
+            //     case, don't add it to the list of statements.
+            if (clsStatement.Text.Length == 0) break;
+            
+            statements.Add(clsStatement.StartPos, clsStatement);
         }
     }
 
@@ -76,9 +81,17 @@ public class RScript
             }
             else if (rStatement.TextNoFormatting.Length > 0)
             {
-                strTxt += rStatement.TextNoFormatting + "\n";
+                strTxt += rStatement.TextNoFormatting + ";";
             }
         }
+
+        // if no formatting needed, then remove trailing `;` from script
+        //     (only needed to separate previous statements).
+        if (!bIncludeFormatting)
+        {
+            strTxt = strTxt.TrimEnd(';');
+        }
+
         return strTxt;
     }
 
