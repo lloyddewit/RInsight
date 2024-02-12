@@ -41,12 +41,12 @@ public class RTokenList {
             new string[] { "*", "/" },
             new string[] { "+", "-" },
             new string[] { "<", ">", "<>", "<=", ">=", "==", "!=" },
-            new string[] { "!" },
+            new string[] { "!", "!!" }, // !! is not standard R but is used by tidyverse
             new string[] { "&", "&&" },
             new string[] { "|", "||" },
             new string[] { "~" },       // unary or binary
             new string[] { "->", "->>" },
-            new string[] { "<-", "<<-" },
+            new string[] { "<-", "<<-", ":=" }, // := is not standard R but is used by tidyverse
             new string[] { "=" },
             new string[] { "?", "??" }
         };

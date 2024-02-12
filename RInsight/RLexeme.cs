@@ -229,7 +229,8 @@ public class RLexeme
     {
         var operators = new string[] { "::", ":::", "$", "@", "^", ":", "%%", "%/%", "%*%",
                 "%o%", "%x%", "%in%", "/", "*", "+", "-", "<", ">", "<=", ">=", "==", "!=", "!",
-                "&", "&&", "|", "||", "|>", "~", "->", "->>", "<-", "<<-", "=", "?", "??" };
+                "&", "&&", "|", "||", "|>", "~", "->", "->>", "<-", "<<-", "=", "?", "??", "!!", 
+                ":=" };
         return operators.Contains(Text);
     }
 
@@ -242,7 +243,7 @@ public class RLexeme
     /// --------------------------------------------------------------------------------------------
     private bool _IsOperatorUnary()
     {
-        var operatorUnaries = new string[] { "+", "-", "!", "~", "?", "??" };
+        var operatorUnaries = new string[] { "+", "-", "!", "~", "?", "??", "!!" };
         return operatorUnaries.Contains(Text);
     }
 
