@@ -587,12 +587,12 @@ public class RTokenList {
                 //if next token is "else"
                 if (pos < tokens.Count-1 && tokens[pos+1].Lexeme.Text == "else")
                 {
+                    RToken tokenElse = GetNextToken(tokens, pos);
+                    pos++;
                     token = GetNextToken(tokens, pos);
                     pos++;
-                    tokensNew.Add(token);
-                    token = GetNextToken(tokens, pos);
-                    pos++;
-                    tokensNew.Add(token);
+                    tokenElse.ChildTokens.Add(token);
+                    tokensNew.Add(tokenElse);
                 }
             }
 
@@ -652,7 +652,8 @@ public class RTokenList {
                         }
                     case "else":
                         {
-                            token.ChildTokens.AddRange(GetKeyWordStatementChildren(tokens, ref pos));
+                            //todo already processed by if statement
+                            //token.ChildTokens.AddRange(GetKeyWordStatementChildren(tokens, ref pos));
                             break;
                         }                        
                     case "for":
