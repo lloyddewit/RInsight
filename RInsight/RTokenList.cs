@@ -452,7 +452,7 @@ public class RTokenList {
     /// <param name="tokens">  The token tree to restructure. </param>
     /// <returns>              A token tree restructured for end statement tokens. </returns>
     /// --------------------------------------------------------------------------------------------
-    private void GetTokenTreeEndStatementNewLines(List<RToken> tokens, bool isStatementBlock = true)
+    private void GetTokenTreeEndStatementNewLines(List<RToken> tokens)
     {
         foreach (RToken token in tokens)
         {
