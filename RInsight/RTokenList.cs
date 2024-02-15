@@ -442,6 +442,39 @@ public class RTokenList {
         return null;
     }
 
+    /// <summary>
+    /// todo
+    /// </summary>
+    /// <param name="token"></param>
+    private void ProcessRToken(RToken token)
+    {
+        if (token.Lexeme.Text == "{")
+        {
+            for (int i = 1; i < token.ChildTokens.Count; i++)
+            {
+                RToken child = token.ChildTokens[i];
+                if (child.Lexeme.Text != "{" && child.Lexeme.Text != "}" &&
+                    !(i == 1 && token.ChildTokens[0].TokenType == RToken.TokenTypes.RPresentation))
+                {
+                    RToken tokenFirstInStatement = GetTokenWithLowestScriptPos(child);
+                    if (tokenFirstInStatement.TokenType == RToken.TokenTypes.RPresentation)
+                    {
+                        // if token text contains \r or \n
+                        if (tokenFirstInStatement.Lexeme.Text.Contains("\r") || tokenFirstInStatement.Lexeme.Text.Contains("\n"))
+                        {
+                            SetNewLineAsEndStatement(tokenFirstInStatement);
+                        }
+                    }
+                }
+            }
+        }
+
+        foreach (RToken child in token.ChildTokens)
+        {
+            ProcessRToken(child);
+        }
+    }
+
     /// --------------------------------------------------------------------------------------------
     /// <summary>
     /// Traverses the <paramref name="tokens"/> tree. If the token is an end statement then it todo
@@ -456,31 +489,33 @@ public class RTokenList {
     {
         foreach (RToken token in tokens)
         {
-            // if token is a presentation token, then skip
-            if (token.TokenType == RToken.TokenTypes.RPresentation)
-            {
-                continue;
-            }
+            ProcessRToken(token);
 
-            //find token with lowest StartPos
-            RToken tokenFirstInStatement = GetTokenWithLowestScriptPos(token);
+            //// if token is a presentation token, then skip
+            //if (token.TokenType == RToken.TokenTypes.RPresentation)
+            //{
+            //    continue;
+            //}
 
-            if (tokenFirstInStatement.TokenType == RToken.TokenTypes.RPresentation)
-            {
-                // if token text contains \r or \n
-                if (tokenFirstInStatement.Lexeme.Text.Contains("\r") || tokenFirstInStatement.Lexeme.Text.Contains("\n"))
-                {
-                    SetNewLineAsEndStatement(tokenFirstInStatement);
-                }
-            }
+            ////find token with lowest StartPos
+            //RToken tokenFirstInStatement = GetTokenWithLowestScriptPos(token);
 
-            // get first child token that is a `{' 
-            RToken? tokenStatementBlock = GetTokenStatementBlock(token);
-            // if not null
-            if (tokenStatementBlock != null)
-            {
-                GetTokenTreeEndStatementNewLines(tokenStatementBlock.ChildTokens);
-            }
+            //if (tokenFirstInStatement.TokenType == RToken.TokenTypes.RPresentation)
+            //{
+            //    // if token text contains \r or \n
+            //    if (tokenFirstInStatement.Lexeme.Text.Contains("\r") || tokenFirstInStatement.Lexeme.Text.Contains("\n"))
+            //    {
+            //        SetNewLineAsEndStatement(tokenFirstInStatement);
+            //    }
+            //}
+
+            //// get first child token that is a `{' 
+            //RToken? tokenStatementBlock = GetTokenStatementBlock(token);
+            //// if not null
+            //if (tokenStatementBlock != null)
+            //{
+            //    GetTokenTreeEndStatementNewLines(tokenStatementBlock.ChildTokens);
+            //}
         }
     }
 
