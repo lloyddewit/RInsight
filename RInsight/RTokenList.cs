@@ -74,93 +74,51 @@ public class RTokenList {
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
-    /// Checks if <paramref name="tokens"/> has enough tokens from position todo delete?
-    /// <paramref name="posTokens"/> onwards to form a valid 'if-else' statement.
-    /// Raises an exception if there are not enough tokens, else just returns
+    /// todo
     /// </summary>
-    /// <param name="tokens">    The list of tokens. </param>
-    /// <param name="posTokens"> The position of the current token in the list. </param>
-    /// <exception cref="Exception"></exception>
+    /// <param name="tokens"></param>
+    /// <param name="pos"></param>
+    /// <returns></returns>
     /// --------------------------------------------------------------------------------------------
-    private static void CheckForLoop(List<RToken> tokens, int posTokens)
+    private static List<RToken> GetKeyWordStatementChildren(List<RToken> tokens, ref int pos)
     {
-        // move to statement after condition
-        int pos = posTokens;
-        pos += GetEndStatementJump(tokens, pos); // jump to token after 'for'<-- here
-        pos += 2;                                // jump to token after 'for(a in 1:5)b'<-- here
+        List<RToken> tokensNew = new List<RToken>();
+        RToken token = tokens[pos];
+        List<string> keywordsWithOnePart = new List<string> { "repeat", "else" };
+        List<string> keywordsWithTwoParts = new List<string> { "if", "for", "while", "function" };
 
-        if (pos > tokens.Count)
+        bool tokenHasOnePart = token.TokenType == RToken.TokenTypes.RKeyWord && keywordsWithOnePart.Contains(token.Lexeme.Text);
+        bool tokenHasTwoParts = token.TokenType == RToken.TokenTypes.RKeyWord && keywordsWithTwoParts.Contains(token.Lexeme.Text);
+
+        while (tokenHasOnePart || tokenHasTwoParts)
         {
-            throw new Exception("Not enough tokens to complete statement.");
-        }
-    }
+            token = GetNextToken(tokens, pos);
+            pos++;
+            tokensNew.Add(token);
 
-    /// --------------------------------------------------------------------------------------------
-    /// <summary>
-    /// Checks if <paramref name="tokens"/> has enough tokens from position todo delete?
-    /// <paramref name="posTokens"/> onwards to form a valid 'if-else' statement.
-    /// Raises an exception if there are not enough tokens, else just returns
-    /// </summary>
-    /// <param name="tokens">    The list of tokens. </param>
-    /// <param name="posTokens"> The position of the current token in the list. </param>
-    /// <exception cref="Exception"></exception>
-    /// --------------------------------------------------------------------------------------------
-    private static void CheckIfElseStatement(List<RToken> tokens, int posTokens)
-    {
-        // move to statement or 'else' after 'if' condition
-        int pos = posTokens;
-        pos += GetEndStatementJump(tokens, pos); // jump to token after 'if'<-- here
-        pos += 2;                                 // jump to token after 'if(a)b'<-- here
-
-        if (pos > tokens.Count)
-        {
-            throw new Exception("Not enough tokens to complete 'if' statement.");
-        }
-
-        // if 'if' statement is complete (i.e. it has no 'else' component) then return
-        if (pos == tokens.Count || tokens[pos].Lexeme.Text != "else")
-        {
-            return;
-        }
-
-        pos += GetEndStatementJump(tokens, pos); // jump to token after 'if(a)b else '<-- here
-        GetEndStatementJump(tokens, pos, false); // jump to token after 'if(a)b else c'<-- here
-    }
-
-    /// --------------------------------------------------------------------------------------------
-    /// <summary> 
-    /// Checks the <paramref name="tokens"/> list from position <paramref name="pos"/>. 
-    /// If the next token after <paramref name="pos"/> is an end statement, then returns 2, else 
-    /// returns 1.
-    /// If it reaches the end of the <paramref name="tokens"/> list while it's checking, 
-    /// and <paramref name="mustHaveTokenAfter"/> is true, then raises an exception.</summary>
-    /// 
-    /// <param name="tokens">  The list of tokens. </param>
-    /// <param name="pos">     The position of the current token in the list. </param>
-    /// <param name="mustHaveTokenAfter"> If true, and returned position would be the last token, 
-    ///                                   then raise exception. </param>
-    /// 
-    /// <returns> The total number of tokens to jump including end statement tokens.</returns>
-    /// --------------------------------------------------------------------------------------------
-    private static int GetEndStatementJump(List<RToken> tokens, int pos, 
-                                           bool mustHaveTokenAfter = true)
-    {
-        int jumpTotal = 1;
-        if (pos + jumpTotal >= tokens.Count)
-        {
-            if (mustHaveTokenAfter) 
+            if (tokenHasTwoParts)
             {
-                throw new Exception("Not enough tokens to legally complete statement."); 
+                token = GetNextToken(tokens, pos);
+                pos++;
+                tokensNew.Add(token);
+
+                //if next token is "else"
+                if (pos < tokens.Count - 1 && tokens[pos + 1].Lexeme.Text == "else")
+                {
+                    token = GetNextToken(tokens, pos);
+                    pos++;
+                    tokensNew.Add(token);
+                    token = GetNextToken(tokens, pos);
+                    pos++;
+                    tokensNew.Add(token);
+                }
             }
-            return jumpTotal;
+
+            tokenHasOnePart = token.TokenType == RToken.TokenTypes.RKeyWord && keywordsWithOnePart.Contains(token.Lexeme.Text);
+            tokenHasTwoParts = token.TokenType == RToken.TokenTypes.RKeyWord && keywordsWithTwoParts.Contains(token.Lexeme.Text);
         }
-        jumpTotal += tokens[pos + jumpTotal].TokenType == RToken.TokenTypes.REndStatement ? 1 : 0;
-        if (pos + jumpTotal >= tokens.Count && mustHaveTokenAfter)
-        {
-            throw new Exception(
-                    "Not enough tokens after end statement token to legally complete statement.");
-        }
-        return jumpTotal;
+
+        return tokensNew;
     }
 
     /// --------------------------------------------------------------------------------------------
@@ -183,48 +141,104 @@ public class RTokenList {
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary> todo delete?
-    /// Returns the next token in the <paramref name="tokens"/> list, after <paramref name="pos"/>.
-    /// If the next token is an end statement, then reclassifies it as a new line token and makes 
-    /// it the first child of the next token.
-    /// Increments <paramref name="pos"/> by 1 if the next token is not an end statement, else 
-    /// increments <paramref name="pos"/> by 2 (i.e. <paramref name="pos"/> is set to the position 
-    /// of the next unprocessed token in the <paramref name="tokens"/> list).
+    /// <summary>
+    /// Processes the binary operator at position <paramref name="posTokens"/> in the 
+    /// <paramref name="tokens"/> list.
+    /// Each binary operator must have a left-hand operand (the token preceding the operator token 
+    /// in the <paramref name="tokens"/> list); and one or more right-hand operands (the token(s) 
+    /// following the operator token in the <paramref name="tokens"/> list).
+    /// An example of multiple right-hand operands is 'a+b+c+d'. 'b', 'c' and 'd' are all right-hand 
+    /// operands of the '+' operator.
     /// </summary>
-    /// <param name="tokens">    The list of tokens. </param>
-    /// <param name="posTokens"> The position of the current token in the list. </param>
-    /// <returns></returns>
-    /// <exception cref="Exception"></exception>
+    /// <param name="tokens"></param>
+    /// <param name="posTokens">  </param>
+    /// <param name="tokenPrev">  The token preceeding the operator token (should represent the 
+    ///                           left-hand operand)</param>
+    /// <returns>                 The <paramref name="tokens"/> list restructured for the binary 
+    ///                           operator at position <paramref name="posTokens"/>.</returns>
     /// --------------------------------------------------------------------------------------------
-    private static RToken GetNextTokenNotEndStatement(List<RToken> tokens, ref int pos)
+    private static List<RToken> GetOperatorBinaryChildren(List<RToken> tokens, ref int posTokens,
+                                                          RToken? tokenPrev)
     {
-        RToken token = GetNextToken(tokens, pos);
-        pos++;
-        //todo
-        return token;
+        if (tokenPrev == null)
+        {
+            throw new Exception("The binary operator has no parameter on its left.");
+        }
 
-        //if (token.TokenType != RToken.TokenTypes.REndStatement)
-        //{
-        //    return token;
-        //}
+        List<RToken> childTokens = new List<RToken>();
+        RToken.TokenTypes tokenType = tokens[posTokens].TokenType;
+        string tokenText = tokens[posTokens].Lexeme.Text ?? "";
 
-        //// reclassify end statement token as a new line token and make it first child of next token
-        //RToken tokenNewLine = token.CloneMe();
-        //tokenNewLine.SetAsNewLine();
-        //var startPos = tokenNewLine.ScriptPosStartStatement;
-        //var tokenFlat = TokensFlat.Find(item => 
-        //                                item.ScriptPosStartStatement >= startPos 
-        //                                && item.TokenType == RToken.TokenTypes.REndStatement);
-        //if (tokenFlat == null)
-        //{
-        //    throw new Exception("Could not find expected end statement in flat token list.");
-        //}
-        //tokenFlat.SetAsNewLine();
+        // make the previous token, a child of the current token
+        childTokens.Add(tokenPrev.CloneMe());
 
-        //RToken tokenNext = GetNextToken(tokens, pos);
-        //tokenNext.ChildTokens.Insert(0, tokenNewLine);
-        //pos++;
-        //return tokenNext;
+        // make the next token, a child of the current token
+        RToken tokenNext = GetNextToken(tokens, posTokens);
+        childTokens.Add(tokenNext);
+        posTokens++;
+        //todo edge case: if next token was a keyword, then we may need to also add the keyword's associated condition and statement
+        childTokens.AddRange(GetKeyWordStatementChildren(tokens, ref posTokens));
+
+        // while next token is the same operator (e.g. 'a+b+c+d...'), 
+        // then keep making the next token, the child of the current operator token
+        while (posTokens < tokens.Count - 1)
+        {
+            tokenNext = GetNextToken(tokens, posTokens);
+            if (tokenType != tokenNext.TokenType || tokenText != tokenNext.Lexeme.Text)
+            {
+                break;
+            }
+            posTokens++;
+
+            tokenNext = GetNextToken(tokens, posTokens);
+            childTokens.Add(tokenNext);
+            posTokens++;
+            //todo edge case: if next token was a keyword, then we may need to also add the keyword's associated condition and statement
+            childTokens.AddRange(GetKeyWordStatementChildren(tokens, ref posTokens));
+        }
+        return childTokens;
+    }
+
+    /// --------------------------------------------------------------------------------------------
+    /// <summary>
+    /// Adds the bracket operator's left-hand operand (<paramref name="tokenPrev"/>) to the bracket 
+    /// operator's children (<paramref name="tokens"/>).
+    /// For example, the left-hand operand in 'a[b]' is 'a'.
+    /// The left-hand operand is made the first non-presentation child of the bracket operator.
+    /// </summary>
+    /// <param name="tokens">     The bracket operator's existing children.</param>
+    /// <param name="tokenPrev">  The token representing the left-hand operand.</param>
+    /// <returns>                 A restructured list of children for the bracket operator.</returns>
+    /// --------------------------------------------------------------------------------------------
+    private static List<RToken> GetOperatorBracketChildren(List<RToken> tokens, RToken? tokenPrev)
+    {
+        List<RToken> tokensNew = new List<RToken>();
+        if (tokenPrev == null)
+        {
+            if (tokens.Count > 1
+                && tokens[tokens.Count - 1].TokenType == RToken.TokenTypes.ROperatorBracket)
+            {
+                // this bracket operator has already been processed so no further action needed
+                return tokens;
+            }
+            throw new Exception("The bracket operator has no parameter on its left.");
+        }
+
+        // if there is a presentation token, then make it the first token in the list
+        int posFirstNonPresentationChild =
+                tokens[0].TokenType == RToken.TokenTypes.RPresentation ? 1 : 0;
+        if (posFirstNonPresentationChild == 1)
+        {
+            tokensNew.Add(tokens[0].CloneMe());
+        }
+        // make the left-hand operand (e.g. 'a' in 'a[b]') the next child
+        tokensNew.Add(tokenPrev.CloneMe());
+
+        // make the right-hand operand(s) the next child(ren)
+        tokensNew.AddRange(tokens.GetRange(
+                posFirstNonPresentationChild, tokens.Count - posFirstNonPresentationChild));
+
+        return tokensNew;
     }
 
     /// --------------------------------------------------------------------------------------------
@@ -310,6 +324,31 @@ public class RTokenList {
             tokenList.Add(token);
         }
         return tokenList;
+    }
+
+    /// --------------------------------------------------------------------------------------------
+    /// <summary>
+    /// todo
+    /// </summary>
+    /// <param name="tokens"></param>
+    /// <returns></returns>
+    /// --------------------------------------------------------------------------------------------
+    private RToken? GetTokenStatementBlock(RToken token)
+    {
+        if (token.TokenType == RToken.TokenTypes.RBracket && token.Lexeme.Text == "{")
+        {
+            return token;
+        }
+
+        foreach (RToken tokenChild in token.ChildTokens)
+        {
+            RToken? tokenStatementBlock = GetTokenStatementBlock(tokenChild);
+            if (tokenStatementBlock != null)
+            {
+                return tokenStatementBlock;
+            }
+        }
+        return null;
     }
 
     /// --------------------------------------------------------------------------------------------
@@ -419,111 +458,13 @@ public class RTokenList {
         return tokensNew;
     }
 
-    /// <summary>
-    /// todo + position
-    /// </summary>
-    /// <param name="tokens"></param>
-    /// <returns></returns>
-    private RToken? GetTokenStatementBlock(RToken token)
-    {
-        if (token.TokenType == RToken.TokenTypes.RBracket && token.Lexeme.Text == "{")
-        {
-            return token;
-        }
-
-        foreach (RToken tokenChild in token.ChildTokens)
-        {
-            RToken? tokenStatementBlock = GetTokenStatementBlock(tokenChild);
-            if (tokenStatementBlock != null)
-            {
-                return tokenStatementBlock;
-            }
-        }
-        return null;
-    }
-
-    /// <summary>
-    /// todo
-    /// </summary>
-    /// <param name="token"></param>
-    private void ProcessRToken(RToken token)
-    {
-        if (token.Lexeme.Text == "{")
-        {
-            for (int i = 1; i < token.ChildTokens.Count; i++)
-            {
-                RToken child = token.ChildTokens[i];
-                if (child.Lexeme.Text != "{" && child.Lexeme.Text != "}" &&
-                    !(i == 1 && token.ChildTokens[0].TokenType == RToken.TokenTypes.RPresentation))
-                {
-                    RToken tokenFirstInStatement = GetTokenWithLowestScriptPos(child);
-                    if (tokenFirstInStatement.TokenType == RToken.TokenTypes.RPresentation)
-                    {
-                        // if token text contains \r or \n
-                        if (tokenFirstInStatement.Lexeme.Text.Contains("\r") || tokenFirstInStatement.Lexeme.Text.Contains("\n"))
-                        {
-                            SetNewLineAsEndStatement(tokenFirstInStatement);
-                        }
-                    }
-                }
-            }
-        }
-
-        foreach (RToken child in token.ChildTokens)
-        {
-            ProcessRToken(child);
-        }
-    }
-
     /// --------------------------------------------------------------------------------------------
-    /// <summary>
-    /// Traverses the <paramref name="tokens"/> tree. If the token is an end statement then it todo
-    /// appends the end statement token to the child list of the previous token. 
-    /// Returns a list of tokens where each top-level token represents a single statement including 
-    /// the statement's end statement token.</summary>
-    /// 
-    /// <param name="tokens">  The token tree to restructure. </param>
-    /// <returns>              A token tree restructured for end statement tokens. </returns>
-    /// --------------------------------------------------------------------------------------------
-    private void GetTokenTreeEndStatementNewLines(List<RToken> tokens)
-    {
-        foreach (RToken token in tokens)
-        {
-            ProcessRToken(token);
-
-            //// if token is a presentation token, then skip
-            //if (token.TokenType == RToken.TokenTypes.RPresentation)
-            //{
-            //    continue;
-            //}
-
-            ////find token with lowest StartPos
-            //RToken tokenFirstInStatement = GetTokenWithLowestScriptPos(token);
-
-            //if (tokenFirstInStatement.TokenType == RToken.TokenTypes.RPresentation)
-            //{
-            //    // if token text contains \r or \n
-            //    if (tokenFirstInStatement.Lexeme.Text.Contains("\r") || tokenFirstInStatement.Lexeme.Text.Contains("\n"))
-            //    {
-            //        SetNewLineAsEndStatement(tokenFirstInStatement);
-            //    }
-            //}
-
-            //// get first child token that is a `{' 
-            //RToken? tokenStatementBlock = GetTokenStatementBlock(token);
-            //// if not null
-            //if (tokenStatementBlock != null)
-            //{
-            //    GetTokenTreeEndStatementNewLines(tokenStatementBlock.ChildTokens);
-            //}
-        }
-    }
-
     /// <summary>
     /// todo
     /// </summary>
     /// <param name="tokens"></param>
     /// <returns></returns>
+    /// --------------------------------------------------------------------------------------------
     private static List<RToken> GetTokenTreeEndStatements(List<RToken> tokens)
     {
         var tokensNew = new List<RToken>();
@@ -591,53 +532,6 @@ public class RTokenList {
         return tokensNew;
     }
 
-    /// <summary>
-    /// todo also order
-    /// </summary>
-    /// <param name="tokens"></param>
-    /// <param name="pos"></param>
-    /// <returns></returns>
-    private static List<RToken> GetKeyWordStatementChildren(List <RToken> tokens, ref int pos)
-    {
-        List <RToken> tokensNew = new List<RToken>();
-        RToken token = tokens[pos];
-        List<string> keywordsWithOnePart = new List<string> { "repeat", "else" };
-        List<string> keywordsWithTwoParts = new List<string> { "if", "for", "while", "function" };
-
-        bool tokenHasOnePart = token.TokenType == RToken.TokenTypes.RKeyWord && keywordsWithOnePart.Contains(token.Lexeme.Text);
-        bool tokenHasTwoParts = token.TokenType == RToken.TokenTypes.RKeyWord && keywordsWithTwoParts.Contains(token.Lexeme.Text);
-
-        while (tokenHasOnePart || tokenHasTwoParts)
-        {
-            token = GetNextToken(tokens, pos);
-            pos++;
-            tokensNew.Add(token);
-
-            if (tokenHasTwoParts)
-            {
-                token = GetNextToken(tokens, pos);
-                pos++;
-                tokensNew.Add(token);
-
-                //if next token is "else"
-                if (pos < tokens.Count-1 && tokens[pos+1].Lexeme.Text == "else")
-                {
-                    token = GetNextToken(tokens, pos);
-                    pos++;
-                    tokensNew.Add(token); 
-                    token = GetNextToken(tokens, pos);
-                    pos++;
-                    tokensNew.Add(token);
-                }
-            }
-
-            tokenHasOnePart = token.TokenType == RToken.TokenTypes.RKeyWord && keywordsWithOnePart.Contains(token.Lexeme.Text);
-            tokenHasTwoParts = token.TokenType == RToken.TokenTypes.RKeyWord && keywordsWithTwoParts.Contains(token.Lexeme.Text);
-        }
-
-        return tokensNew;
-    }
-
     /// --------------------------------------------------------------------------------------------
     /// <summary>
     /// Traverses the <paramref name="tokens"/> tree. If the token is a key word ("if", "else", 
@@ -660,62 +554,15 @@ public class RTokenList {
                 switch (token.Lexeme.Text)
                 {
                     case "if":
-                        {
-                            //CheckIfElseStatement(tokens, pos);
-
-                            // make the 'if' statement's condition and statement children of the 'if' token
-                            //todo
-                            token.ChildTokens.AddRange(GetKeyWordStatementChildren(tokens, ref pos));
-                            
-                            // if there is no 'else' on the same line as the 'if' statement,
-                            //     then we are done
-                            //if (pos == tokens.Count -1 || tokens[pos + 1].Lexeme.Text != "else")
-                            //{
-                            //    break;
-                            //}
-
-                            //// create the 'else' token
-                            //pos++;
-                            //RToken tokenElse = tokens[pos].CloneMe();
-
-                            //// make the 'else' statement's statement a child of the 'else' statement
-                            //tokenElse.ChildTokens.AddRange(GetKeyWordStatementChildren(tokens, ref pos));
-
-                            //// make the 'else' statement a child of the 'if' statement
-                            //token.ChildTokens.Add(tokenElse);
-                            break;
-                        }
                     case "else":
-                        {
-                            token.ChildTokens.AddRange(GetKeyWordStatementChildren(tokens, ref pos));
-                            break;
-                        }                        
                     case "for":
-                        {
-                            //CheckForLoop(tokens, pos);
-                            // make the 'for' loop's condition and statement children of the 'for' token
-                            token.ChildTokens.AddRange(GetKeyWordStatementChildren(tokens, ref pos));
-                            break;
-                        }
                     case "repeat":
-                        {
-                            token.ChildTokens.AddRange(GetKeyWordStatementChildren(tokens, ref pos));
-                            break;
-                        }
                     case "while":
-                        {
-                            token.ChildTokens.AddRange(GetKeyWordStatementChildren(tokens, ref pos));
-                            break;
-                        }
                     case "function":
                         {
                             token.ChildTokens.AddRange(GetKeyWordStatementChildren(tokens, ref pos));
                             break;
                         }
-                    case "in":    // ignore, already processed by 'for'
-                    case "next":  // ignore, no action needed
-                    case "break": // ignore, no action needed
-                        break;
                 }
             }
             token.ChildTokens = GetTokenTreeKeyWords(token.CloneMe().ChildTokens);
@@ -737,48 +584,19 @@ public class RTokenList {
     /// --------------------------------------------------------------------------------------------
     private List<RToken> GetTokenTreeList(List<RToken> tokenList)
     {
-        var tokenTreePresentation = GetTokenTreePresentation(tokenList);//todo
+        var tokenTreePresentation = GetTokenTreePresentation(tokenList);
         var tokenTreeBrackets = GetTokenTreeBrackets(tokenTreePresentation);
-        //var tokenTreeNewLines = GetTokenTreeNewLines(tokenTreeBrackets);
         var tokenTreeCommas = GetTokenTreeCommas(tokenTreeBrackets);
         var tokenTreeFunctions = GetTokenTreeFunctions(tokenTreeCommas);
         var tokenTreeOperators = GetTokenTreeOperators(tokenTreeFunctions);
         var tokenTreeKeyWords = GetTokenTreeKeyWords(tokenTreeOperators);
         var tokenTreeEndStatements = GetTokenTreeEndStatements(tokenTreeKeyWords);
-        GetTokenTreeEndStatementNewLines(tokenTreeEndStatements);
+        TokenTreeEndStatementNewLines(tokenTreeEndStatements);
         return tokenTreeEndStatements;
-    }
-
-    /// <summary>
-    /// todo
-    /// </summary>
-    /// <param name="token"></param>
-    /// <returns></returns>
-    static RToken GetTokenWithLowestScriptPos(RToken token)
-    {
-        RToken lowest = token;
-
-        // don't search compound statements
-        if (token.TokenType == RToken.TokenTypes.RBracket && token.Lexeme.Text == "{")
-        {
-            return lowest;
-        }
-
-        foreach (var child in token.ChildTokens)
-        {
-            var lowestInChild = GetTokenWithLowestScriptPos(child);
-            if (lowestInChild.ScriptPos < lowest.ScriptPos)
-            {
-                lowest = lowestInChild;
-            }
-        }
-
-        return lowest;
     }
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
-    /// todo delete?
     /// Traverses the tree of tokens in <paramref name="tokens"/>. If a newline token is found, 
     /// then checks to see if the newline token should be an end statement token. If so, then it 
     /// reclassifies the newline token as an end statement token.
@@ -1095,103 +913,31 @@ public class RTokenList {
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
-    /// Processes the binary operator at position <paramref name="posTokens"/> in the 
-    /// <paramref name="tokens"/> list.
-    /// Each binary operator must have a left-hand operand (the token preceding the operator token 
-    /// in the <paramref name="tokens"/> list); and one or more right-hand operands (the token(s) 
-    /// following the operator token in the <paramref name="tokens"/> list).
-    /// An example of multiple right-hand operands is 'a+b+c+d'. 'b', 'c' and 'd' are all right-hand 
-    /// operands of the '+' operator.
+    /// todo
     /// </summary>
-    /// <param name="tokens"></param>
-    /// <param name="posTokens">  </param>
-    /// <param name="tokenPrev">  The token preceeding the operator token (should represent the 
-    ///                           left-hand operand)</param>
-    /// <returns>                 The <paramref name="tokens"/> list restructured for the binary 
-    ///                           operator at position <paramref name="posTokens"/>.</returns>
+    /// <param name="token"></param>
+    /// <returns></returns>
     /// --------------------------------------------------------------------------------------------
-    private static List<RToken> GetOperatorBinaryChildren(List<RToken> tokens, ref int posTokens, 
-                                                          RToken? tokenPrev)
+    static RToken GetTokenWithLowestScriptPos(RToken token)
     {
-        if (tokenPrev == null)
+        RToken lowest = token;
+
+        // don't search compound statements
+        if (token.TokenType == RToken.TokenTypes.RBracket && token.Lexeme.Text == "{")
         {
-            throw new Exception("The binary operator has no parameter on its left.");
+            return lowest;
         }
 
-        List<RToken> childTokens = new List<RToken>();
-        RToken.TokenTypes tokenType = tokens[posTokens].TokenType;
-        string tokenText = tokens[posTokens].Lexeme.Text ?? "";
-
-        // make the previous token, a child of the current token
-        childTokens.Add(tokenPrev.CloneMe());
-
-        // make the next token, a child of the current token
-        RToken tokenNext = GetNextToken(tokens, posTokens);
-        childTokens.Add(tokenNext);
-        posTokens++;
-        //todo edge case: if next token was a keyword, then we may need to also add the keyword's associated condition and statement
-        childTokens.AddRange(GetKeyWordStatementChildren(tokens, ref posTokens));
-        
-        // while next token is the same operator (e.g. 'a+b+c+d...'), 
-        // then keep making the next token, the child of the current operator token
-        while (posTokens < tokens.Count - 1)
+        foreach (var child in token.ChildTokens)
         {
-            tokenNext = GetNextToken(tokens, posTokens);
-            if (tokenType != tokenNext.TokenType || tokenText != tokenNext.Lexeme.Text)
+            var lowestInChild = GetTokenWithLowestScriptPos(child);
+            if (lowestInChild.ScriptPos < lowest.ScriptPos)
             {
-                break;
+                lowest = lowestInChild;
             }
-            posTokens++;
-
-            tokenNext = GetNextToken(tokens, posTokens);
-            childTokens.Add(tokenNext);
-            posTokens++;
-            //todo edge case: if next token was a keyword, then we may need to also add the keyword's associated condition and statement
-            childTokens.AddRange(GetKeyWordStatementChildren(tokens, ref posTokens));
-        }
-        return childTokens;
-    }
-
-    /// --------------------------------------------------------------------------------------------
-    /// <summary>
-    /// Adds the bracket operator's left-hand operand (<paramref name="tokenPrev"/>) to the bracket 
-    /// operator's children (<paramref name="tokens"/>).
-    /// For example, the left-hand operand in 'a[b]' is 'a'.
-    /// The left-hand operand is made the first non-presentation child of the bracket operator.
-    /// </summary>
-    /// <param name="tokens">     The bracket operator's existing children.</param>
-    /// <param name="tokenPrev">  The token representing the left-hand operand.</param>
-    /// <returns>                 A restructured list of children for the bracket operator.</returns>
-    /// --------------------------------------------------------------------------------------------
-    private static List<RToken> GetOperatorBracketChildren(List<RToken> tokens, RToken? tokenPrev)
-    {
-        List<RToken> tokensNew = new List<RToken>();
-        if (tokenPrev == null)
-        {
-            if (tokens.Count > 1
-                && tokens[tokens.Count - 1].TokenType == RToken.TokenTypes.ROperatorBracket)
-            {
-                // this bracket operator has already been processed so no further action needed
-                return tokens;
-            }
-            throw new Exception("The bracket operator has no parameter on its left.");
         }
 
-        // if there is a presentation token, then make it the first token in the list
-        int posFirstNonPresentationChild = 
-                tokens[0].TokenType == RToken.TokenTypes.RPresentation ? 1 : 0;
-        if (posFirstNonPresentationChild == 1)
-        {
-            tokensNew.Add(tokens[0].CloneMe());
-        }
-        // make the left-hand operand (e.g. 'a' in 'a[b]') the next child
-        tokensNew.Add(tokenPrev.CloneMe());
-
-        // make the right-hand operand(s) the next child(ren)
-        tokensNew.AddRange(tokens.GetRange(
-                posFirstNonPresentationChild, tokens.Count - posFirstNonPresentationChild));
-
-        return tokensNew;
+        return lowest;
     }
 
     /// --------------------------------------------------------------------------------------------
@@ -1213,21 +959,53 @@ public class RTokenList {
             throw new Exception("Could not find expected new line in flat token list.");
         }
         tokenFlat.SetAsEndStatement();
-
-
-        //RToken tokenEndStatement = token.CloneMe();
-        //tokenEndStatement.SetAsEndStatement();
-
-        //var startPos = tokenEndStatement.ScriptPosStartStatement;
-        //var tokenFlat = TokensFlat.Find(item => item.ScriptPosStartStatement >= startPos 
-        //                                && item.TokenType == RToken.TokenTypes.RNewLine);
-        //if (tokenFlat == null)
-        //{
-        //    throw new Exception("Could not find expected new line in flat token list.");
-        //}
-        //tokenFlat.SetAsEndStatement();
-
-        //return tokenEndStatement;
     }
 
+    /// --------------------------------------------------------------------------------------------
+    /// <summary>
+    /// todo
+    /// </summary>
+    /// <param name="token"></param>
+    /// --------------------------------------------------------------------------------------------
+    private void TagNewLinesAsEndStatements(RToken token)
+    {
+        if (token.Lexeme.Text == "{")
+        {
+            for (int i = 1; i < token.ChildTokens.Count; i++)
+            {
+                RToken child = token.ChildTokens[i];
+                if (child.Lexeme.Text == "{" || child.Lexeme.Text == "}" ||
+                    i == 1 && token.ChildTokens[0].TokenType == RToken.TokenTypes.RPresentation)
+                {
+                    continue;
+                }
+
+                RToken tokenFirstInStatement = GetTokenWithLowestScriptPos(child);
+                if (tokenFirstInStatement.TokenType == RToken.TokenTypes.RPresentation
+                    && (tokenFirstInStatement.Lexeme.Text.Contains("\r")
+                        || tokenFirstInStatement.Lexeme.Text.Contains("\n")))
+                {
+                    SetNewLineAsEndStatement(tokenFirstInStatement);
+                }
+            }
+        }
+
+        foreach (RToken child in token.ChildTokens)
+        {
+            TagNewLinesAsEndStatements(child);
+        }
+    }
+
+    /// --------------------------------------------------------------------------------------------
+    /// <summary> todo
+    /// </summary>
+    /// <param name="tokens"></param>
+    /// -------------------------------------------------------------------------------------------- 
+    private void TokenTreeEndStatementNewLines(List<RToken> tokens)
+    {
+        foreach (RToken token in tokens)
+        {
+            TagNewLinesAsEndStatements(token);
+        }
+    }
 }
