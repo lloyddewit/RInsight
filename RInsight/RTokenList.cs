@@ -74,16 +74,27 @@ public class RTokenList {
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
-    /// todo
+    /// Processes the token at position <paramref name="posTokens"/> in the 
+    /// <paramref name="tokens"/> list.
+    /// If the token is a key word, then builds and returns a list of all the subsequent tokens that 
+    /// are part of that key word statement.
+    /// For example, if the key word is 'if', then the list will contain the 'if' token, the 
+    /// condition and the statement.
+    /// So 'if(a)b' will return the following token list:<para>
+    /// 'if, '(' + child, 'b'</para><para>
+    /// Note that key words can be chained together. For example, 'if(a)else if(b)else while(d){...' 
+    /// will return the following token list:</para><para>
+    /// 'if, '(' + child, 'else', 'if', '(' + child, 'else', 'while' etc.</para>
     /// </summary>
-    /// <param name="tokens"></param>
-    /// <param name="pos"></param>
-    /// <returns></returns>
+    /// <param name="tokens">    The list of tokens. </param>
+    /// <param name="posTokens"> The position of the current token in the list. </param>
+    /// <returns>                If the current token is a key word, then returns a list of all the 
+    ///     tokens associated with the current token's statement. Else returns an empty list.</returns>
     /// --------------------------------------------------------------------------------------------
-    private static List<RToken> GetKeyWordStatementChildren(List<RToken> tokens, ref int pos)
+    private static List<RToken> GetKeyWordStatementChildren(List<RToken> tokens, ref int posTokens)
     {
         List<RToken> tokensNew = new List<RToken>();
-        RToken token = tokens[pos];
+        RToken token = tokens[posTokens];
         List<string> keywordsWithOnePart = new List<string> { "repeat", "else" };
         List<string> keywordsWithTwoParts = new List<string> { "if", "for", "while", "function" };
 
@@ -92,24 +103,24 @@ public class RTokenList {
 
         while (tokenHasOnePart || tokenHasTwoParts)
         {
-            token = GetNextToken(tokens, pos);
-            pos++;
+            token = GetNextToken(tokens, posTokens);
+            posTokens++;
             tokensNew.Add(token);
 
             if (tokenHasTwoParts)
             {
-                token = GetNextToken(tokens, pos);
-                pos++;
+                token = GetNextToken(tokens, posTokens);
+                posTokens++;
                 tokensNew.Add(token);
 
                 //if next token is "else"
-                if (pos < tokens.Count - 1 && tokens[pos + 1].Lexeme.Text == "else")
+                if (posTokens < tokens.Count - 1 && tokens[posTokens + 1].Lexeme.Text == "else")
                 {
-                    token = GetNextToken(tokens, pos);
-                    pos++;
+                    token = GetNextToken(tokens, posTokens);
+                    posTokens++;
                     tokensNew.Add(token);
-                    token = GetNextToken(tokens, pos);
-                    pos++;
+                    token = GetNextToken(tokens, posTokens);
+                    posTokens++;
                     tokensNew.Add(token);
                 }
             }
