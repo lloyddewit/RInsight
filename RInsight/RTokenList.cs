@@ -338,31 +338,6 @@ public class RTokenList {
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>
-    /// todo
-    /// </summary>
-    /// <param name="tokens"></param>
-    /// <returns></returns>
-    /// --------------------------------------------------------------------------------------------
-    private RToken? GetTokenStatementBlock(RToken token)
-    {
-        if (token.TokenType == RToken.TokenTypes.RBracket && token.Lexeme.Text == "{")
-        {
-            return token;
-        }
-
-        foreach (RToken tokenChild in token.ChildTokens)
-        {
-            RToken? tokenStatementBlock = GetTokenStatementBlock(tokenChild);
-            if (tokenStatementBlock != null)
-            {
-                return tokenStatementBlock;
-            }
-        }
-        return null;
-    }
-
-    /// --------------------------------------------------------------------------------------------
     /// <summary>   
     /// Iterates through the tokens in <paramref name="tokens"/>. If the token is aan open bracket, 
     /// then makes everything inside the brackets a child of the open bracket token. Brackets may 
