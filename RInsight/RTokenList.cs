@@ -1,6 +1,6 @@
 ﻿namespace RInsight;
 
-/// --------------------------------------------------------------------------------------------
+/// ------------------------------------------------------------------------------------------------
 /// <summary>
 /// A list of tokens generated from an R script. Each item in the list is a recursive token tree 
 /// that represents a single R statement. Each R statement may contain zero or more substatements.
@@ -8,9 +8,15 @@
 /// information needed to reconstruct the original script including all the whitespace, comments 
 /// and extra line breaks.
 /// For more details about R tokens and how they are structured, please see the documentation for 
-/// the RToken class.
-/// </summary>
-/// --------------------------------------------------------------------------------------------
+/// the RToken class.<para>
+/// 
+/// todo: This class currently contains two lists - the flat list and the tree list. The flat list 
+/// is lossless but the tree list loses some presentation information when it structures the tree 
+/// for operators. For example, when it structures 'a+b +c + d' it does not store the presentation 
+/// information (the spaces in this case) for the second and third '+' operators. Should we make 
+/// the tree list lossless? We could then use the tree list to generate the flat list on demand.
+/// </para></summary>
+/// ------------------------------------------------------------------------------------------------
 public class RTokenList {
 
     /// <summary> List of tokens that represents the R script. 
@@ -36,7 +42,8 @@ public class RTokenList {
             new string[] { "^" },       // right to left precedence
             new string[] { "-", "+" },  // unary operators
             new string[] { ":" },
-            new string[] { "%" },       // any operator that starts with '%' (including user-defined operators)
+            new string[] { "%" },       // any operator that starts with '%'
+                                        //   (including user-defined operators)
             new string[] { "|>" },
             new string[] { "*", "/" },
             new string[] { "+", "-" },
@@ -54,13 +61,13 @@ public class RTokenList {
     /// --------------------------------------------------------------------------------------------
     /// <summary>
     /// Constructs a list of tokens generated from <paramref name="script"/>. Each item in the list 
-    /// is a recursive token tree that represents a single R statement. Each R statement may contain 
-    /// zero or more substatements.
+    /// is a recursive token tree that represents a single R statement. Each R statement may 
+    /// contain zero or more substatements.
     /// The list of tokens is a lossless representation of the R script. It contains all the 
-    /// information needed to reconstruct the original script including all the whitespace, comments 
-    /// and extra line breaks.
-    /// For more details about R tokens and how they are structured, please see the documentation for 
-    /// the RToken class.
+    /// information needed to reconstruct the original script including all the whitespace, 
+    /// comments and extra line breaks.
+    /// For more details about R tokens and how they are structured, please see the documentation 
+    /// for the RToken class.
     /// </summary>
     /// <param name="script"> The R script to parse. This must be valid R according to the 
     /// R language specification at https://cran.r-project.org/doc/manuals/r-release/R-lang.html 
@@ -76,13 +83,13 @@ public class RTokenList {
     /// <summary>
     /// Processes the token at position <paramref name="posTokens"/> in the 
     /// <paramref name="tokens"/> list.
-    /// If the token is a key word, then builds and returns a list of all the subsequent tokens that 
-    /// are part of that key word statement.
+    /// If the token is a key word, then builds and returns a list of all the subsequent tokens 
+    /// that are part of that key word statement.
     /// For example, if the key word is 'if', then the list will contain the 'if' token, the 
     /// condition and the statement.
     /// So 'if(a)b' will return the following token list:<para>
     /// 'if, '(' + child, 'b'</para><para>
-    /// Note that key words can be chained together. For example, 'if(a)else if(b)else while(d){...' 
+    /// Note that key words can be chained together. For example, 'if(a)else if(b)else while(d){..' 
     /// will return the following token list:</para><para>
     /// 'if, '(' + child, 'else', 'if', '(' + child, 'else', 'while' etc.</para>
     /// </summary>
@@ -95,14 +102,10 @@ public class RTokenList {
     {
         List<RToken> tokensNew = new List<RToken>();
         RToken token = tokens[posTokens];
-        List<string> keywordsWithOnePart = new List<string> { "repeat", "else" };
-        List<string> keywordsWithTwoParts = new List<string> { "if", "for", "while", "function" };
 
-        bool tokenHasOnePart = token.TokenType == RToken.TokenTypes.RKeyWord && keywordsWithOnePart.Contains(token.Lexeme.Text);
-        bool tokenHasTwoParts = token.TokenType == RToken.TokenTypes.RKeyWord && keywordsWithTwoParts.Contains(token.Lexeme.Text);
-
-        while (tokenHasOnePart || tokenHasTwoParts)
+        while (HasOnePart(token) || HasTwoParts(token))
         {
+            bool tokenHasTwoParts = HasTwoParts(token);
             token = GetNextToken(tokens, posTokens);
             posTokens++;
             tokensNew.Add(token);
@@ -113,7 +116,6 @@ public class RTokenList {
                 posTokens++;
                 tokensNew.Add(token);
 
-                //if next token is "else"
                 if (posTokens < tokens.Count - 1 && tokens[posTokens + 1].Lexeme.Text == "else")
                 {
                     token = GetNextToken(tokens, posTokens);
@@ -124,16 +126,12 @@ public class RTokenList {
                     tokensNew.Add(token);
                 }
             }
-
-            tokenHasOnePart = token.TokenType == RToken.TokenTypes.RKeyWord && keywordsWithOnePart.Contains(token.Lexeme.Text);
-            tokenHasTwoParts = token.TokenType == RToken.TokenTypes.RKeyWord && keywordsWithTwoParts.Contains(token.Lexeme.Text);
         }
-
         return tokensNew;
     }
 
     /// --------------------------------------------------------------------------------------------
-    /// <summary>   Returns a clone of the next token in the <paramref name="tokens"/> list, 
+    /// <summary>   Returns a clone of the next token in the <paramref name="tokens"/> list
     ///             after <paramref name="posTokens"/>. If there is no next token then throws 
     ///             an exception.</summary>
     /// 
@@ -158,8 +156,8 @@ public class RTokenList {
     /// Each binary operator must have a left-hand operand (the token preceding the operator token 
     /// in the <paramref name="tokens"/> list); and one or more right-hand operands (the token(s) 
     /// following the operator token in the <paramref name="tokens"/> list).
-    /// An example of multiple right-hand operands is 'a+b+c+d'. 'b', 'c' and 'd' are all right-hand 
-    /// operands of the '+' operator.
+    /// An example of multiple right-hand operands is 'a+b+c+d'. 'b', 'c' and 'd' are all  
+    /// right-hand operands of the '+' operator.
     /// </summary>
     /// <param name="tokens"></param>
     /// <param name="posTokens">  </param>
@@ -446,10 +444,14 @@ public class RTokenList {
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
-    /// todo
-    /// </summary>
-    /// <param name="tokens"></param>
-    /// <returns></returns>
+    /// Traverses the <paramref name="tokens"/> tree. If the token is a ';' end statement then it 
+    /// makes the token a child of the previous token.
+    /// For example 'a;b' is structured as: <code>
+    /// a
+    /// ..;
+    /// b</code></summary>
+    /// <param name="tokens">  The token tree to restructure. </param>
+    /// <returns>              A token tree restructured for end statements. </returns>
     /// --------------------------------------------------------------------------------------------
     private static List<RToken> GetTokenTreeEndStatements(List<RToken> tokens)
     {
@@ -579,64 +581,6 @@ public class RTokenList {
         var tokenTreeEndStatements = GetTokenTreeEndStatements(tokenTreeKeyWords);
         TokenTreeEndStatementNewLines(tokenTreeEndStatements);
         return tokenTreeEndStatements;
-    }
-
-    /// --------------------------------------------------------------------------------------------
-    /// <summary>
-    /// Traverses the tree of tokens in <paramref name="tokens"/>. If a newline token is found, 
-    /// then checks to see if the newline token should be an end statement token. If so, then it 
-    /// reclassifies the newline token as an end statement token.
-    /// </summary>
-    /// <param name="tokens"> The token tree to traverse.</param>
-    /// <param name="inConditionOrParamList"> True if the token list is a list of function parameters 
-    ///     e.g. `myFunction(a,b,c)`) 
-    ///     or a list of parameters inside a bracket operator 
-    ///     e.g. `myData[a,b,c]`). 
-    ///     In this case, the function knows that a newline should never be an end statement.</param>
-    /// <returns>The processed token tree</returns>
-    /// --------------------------------------------------------------------------------------------
-    private List<RToken> GetTokenTreeNewLines(List<RToken> tokens, bool inConditionOrParamList = false)
-    {
-        var tokensNew = new List<RToken>();
-        bool statementContainsElement = false;
-        bool tokenPrevIsOperator = false;
-        bool tokenPrevHasConditionOrParams = false;
-        int posTokens = 0;
-        while (posTokens < tokens.Count)
-        {
-            RToken token = tokens[posTokens];
-            posTokens++;
-
-            if (token.TokenType == RToken.TokenTypes.RNewLine
-                && statementContainsElement
-                && !inConditionOrParamList
-                && !tokenPrevIsOperator)
-            {
-                //todo token = SetNewLineAsEndStatement(token);
-            }
-            if (token.TokenType == RToken.TokenTypes.REndStatement)
-            {
-                statementContainsElement = false;
-                tokenPrevIsOperator = false;
-            }
-
-            token.ChildTokens = GetTokenTreeNewLines(
-                    token.CloneMe().ChildTokens, tokenPrevHasConditionOrParams 
-                    || token.TokenType == RToken.TokenTypes.ROperatorBracket);
-            tokensNew.Add(token.CloneMe());
-
-            if (!token.IsPresentation && token.TokenType != RToken.TokenTypes.REndStatement)
-            {
-                statementContainsElement = true;
-                List<string> keyWordsWithComdition = new List<string> { "if", "while", "for"};
-                tokenPrevHasConditionOrParams = token.TokenType is RToken.TokenTypes.RFunctionName
-                        || (token.TokenType is RToken.TokenTypes.RKeyWord
-                            && keyWordsWithComdition.Contains(token.Lexeme.Text));
-                tokenPrevIsOperator = token.TokenType is RToken.TokenTypes.ROperatorBinary
-                                            || token.TokenType is RToken.TokenTypes.ROperatorUnaryRight;
-            }
-        }
-        return tokensNew;
     }
 
     /// --------------------------------------------------------------------------------------------
@@ -890,7 +834,8 @@ public class RTokenList {
         {
             // add a new empty token with the presentation info as its child
             RToken tokenEmpty = new RToken(new RLexeme(""), prefixScriptPos, RToken.TokenTypes.REmpty);
-            tokenEmpty.ChildTokens.Add(new RToken(new RLexeme(prefix), prefixScriptPos, RToken.TokenTypes.RPresentation));
+            tokenEmpty.ChildTokens.Add(new RToken(new RLexeme(prefix), prefixScriptPos, 
+                                                  RToken.TokenTypes.RPresentation));
             tokensNew.Add(tokenEmpty);
         }
 
@@ -899,10 +844,11 @@ public class RTokenList {
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
-    /// todo
+    /// Traverses the <paramref name="tokens"/> tree and returns the token with the lowest start 
+    /// position. In effect, this function returns the first token in the statement.
     /// </summary>
-    /// <param name="token"></param>
-    /// <returns></returns>
+    /// <param name="token"> The token tree to traverse</param>
+    /// <returns>The first token in the statement</returns>
     /// --------------------------------------------------------------------------------------------
     static RToken GetTokenWithLowestScriptPos(RToken token)
     {
@@ -928,18 +874,47 @@ public class RTokenList {
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
-    /// Converts the newline <paramref name="token"/> to an end statement token.
-    /// This class stores each token in two collections: a tree of tokens and a flat list of tokens.
-    /// This function converts the token in both collections into an end statement token.
+    /// Returns true if <paramref name="token"/> is a 'repeat' or 'else' keyword.
     /// </summary>
-    /// <param name="token"> the newline token to convert.</param>
+    /// <param name="token"> the token to check</param>
+    /// <returns>true if <paramref name="token"/> is a 'repeat' or 'else' keyword.</returns>
+    /// --------------------------------------------------------------------------------------------
+    private static bool HasOnePart(RToken token)
+    {
+        List<string> keywordsWithOnePart = new List<string> { "repeat", "else" };
+        return token.TokenType == RToken.TokenTypes.RKeyWord
+                                                && keywordsWithOnePart.Contains(token.Lexeme.Text);
+    }
+
+    /// --------------------------------------------------------------------------------------------
+    /// <summary>
+    /// Returns true if <paramref name="token"/> is a 'if', 'for', 'while' or 'function' keyword.
+    /// </summary>
+    /// <param name="token"> the token to check</param>
+    /// <returns>true if <paramref name="token"/> is a 'if', 'for', 'while' or 'function' keyword.</returns>
+    /// --------------------------------------------------------------------------------------------
+    private static bool HasTwoParts(RToken token)
+    {
+        List<string> keywordsWithTwoParts = new List<string> { "if", "for", "while", "function" };
+
+        return token.TokenType == RToken.TokenTypes.RKeyWord
+                                                && keywordsWithTwoParts.Contains(token.Lexeme.Text);
+    }
+
+    /// --------------------------------------------------------------------------------------------
+    /// <summary>
+    /// Converts the newline <paramref name="token"/> to an end statement token in the flat list of 
+    /// tokens.
+    /// </summary>
+    /// <param name="token"> The newline token to convert.</param>
     /// <returns>            The token converted to an end statement token.</returns>
     /// <exception cref="Exception"></exception>
     /// --------------------------------------------------------------------------------------------
     private void SetNewLineAsEndStatement(RToken token)
     {
-        var tokenFlat = TokensFlat.Find(item => item.ScriptPosStartStatement >= token.ScriptPosStartStatement
-                                        && item.TokenType == RToken.TokenTypes.RNewLine);
+        var tokenFlat = TokensFlat.Find(
+                item => item.ScriptPosStartStatement >= token.ScriptPosStartStatement
+                && item.TokenType == RToken.TokenTypes.RNewLine);
         if (tokenFlat == null)
         {
             throw new Exception("Could not find expected new line in flat token list.");
@@ -949,49 +924,56 @@ public class RTokenList {
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
-    /// todo
-    /// </summary>
-    /// <param name="token"></param>
+    /// Recursively traverses the <paramref name="tokens"/> tree. If a token is a '{' then it goes 
+    /// through each statement in the '{' block and converts any newlines that separate statements 
+    /// into end statements.
+    /// This function only changes the flat list of tokens. The token tree is not changed.
+    /// The flat list of tokens needs to know which newlines are end statements. This is because the 
+    /// flat list is used to create the R script without any presentation information, and it needs 
+    /// to know where to put the ';' separators.
+    /// For example, the script below can be represented without any presentation information as 
+    /// 'if(a){b;c}'.<code> 
+    /// if(a)
+    /// {
+    ///   b1
+    ///   c2
+    /// }</code></summary>
+    /// <param name="tokens">  The token tree to traverse. </param>>
     /// --------------------------------------------------------------------------------------------
-    private void TagNewLinesAsEndStatements(RToken token)
-    {
-        if (token.Lexeme.Text == "{")
-        {
-            for (int i = 1; i < token.ChildTokens.Count; i++)
-            {
-                RToken child = token.ChildTokens[i];
-                if (child.Lexeme.Text == "{" || child.Lexeme.Text == "}" ||
-                    i == 1 && token.ChildTokens[0].TokenType == RToken.TokenTypes.RPresentation)
-                {
-                    continue;
-                }
-
-                RToken tokenFirstInStatement = GetTokenWithLowestScriptPos(child);
-                if (tokenFirstInStatement.TokenType == RToken.TokenTypes.RPresentation
-                    && (tokenFirstInStatement.Lexeme.Text.Contains("\r")
-                        || tokenFirstInStatement.Lexeme.Text.Contains("\n")))
-                {
-                    SetNewLineAsEndStatement(tokenFirstInStatement);
-                }
-            }
-        }
-
-        foreach (RToken child in token.ChildTokens)
-        {
-            TagNewLinesAsEndStatements(child);
-        }
-    }
-
-    /// --------------------------------------------------------------------------------------------
-    /// <summary> todo
-    /// </summary>
-    /// <param name="tokens"></param>
-    /// -------------------------------------------------------------------------------------------- 
     private void TokenTreeEndStatementNewLines(List<RToken> tokens)
     {
         foreach (RToken token in tokens)
         {
-            TagNewLinesAsEndStatements(token);
+            if (token.Lexeme.Text == "{")
+            {
+                for (int i = 1; i < token.ChildTokens.Count; i++)
+                {
+                    RToken child = token.ChildTokens[i];
+
+                    // Ignore any newlines associated with braces. Braces automatically define
+                    // start/end of statements so any additional newlines are redundant.
+                    // Also ignore any newlines associated with the first statement after the '{'.
+                    // These newlines are just extra separation lines before the '{' and can be
+                    // ignored.
+                    if (child.Lexeme.Text == "{" || child.Lexeme.Text == "}" ||
+                        (i == 1 
+                         && token.ChildTokens[0].TokenType == RToken.TokenTypes.RPresentation))
+                    {
+                        continue;
+                    }
+
+                    // If the ststement is preceded by a newline, then convert the newline to
+                    // an end statement
+                    RToken tokenFirstInStatement = GetTokenWithLowestScriptPos(child);
+                    if (tokenFirstInStatement.TokenType == RToken.TokenTypes.RPresentation
+                        && (tokenFirstInStatement.Lexeme.Text.Contains("\r")
+                            || tokenFirstInStatement.Lexeme.Text.Contains("\n")))
+                    {
+                        SetNewLineAsEndStatement(tokenFirstInStatement);
+                    }
+                }
+            }
+            TokenTreeEndStatementNewLines(token.ChildTokens);
         }
     }
 }
