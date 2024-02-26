@@ -1,6 +1,4 @@
-﻿using System.Linq;
-
-namespace RInsight;
+﻿namespace RInsight;
 
 /// <summary>
 /// Represents a single valid R statement.
@@ -27,86 +25,51 @@ public class RStatement
 
     /// --------------------------------------------------------------------------------------------
     /// <summary>
-    /// todo move down in class
-    /// todo return position after the first newline or carriage return ('n', '\r' or '\r\n'). If neither is found, then return 0.
-    /// Examples:<para>
-    /// '' returns -1</para><para>
-    /// '\n' returns 1</para><para>
-    /// 'a' returns -1</para><para>
-    /// 'a\r' returns 2</para><para>
-    /// 'a\n" returns 2</para><para>
-    /// "a\r\n" returns 3</para><para>
-    /// "a\r\nb" returns 3</para><para>
-    /// "abc\r\nd" returns 5</para><para>
-    /// "abc\r\ndef" returns 5</para>
-    /// </summary>
-    /// <param name="text"></param>
-    /// <returns></returns>
-    /// --------------------------------------------------------------------------------------------
-    private int GetPresentationSplitPos(string text)
-    {
-        int posNewLine = text.IndexOf("\n");
-        int posCarriageReturn = text.IndexOf("\r");
-
-        if (posNewLine == -1 && posCarriageReturn == -1) return 0;
-        if (posNewLine == -1) return posCarriageReturn + 1;
-        if (posCarriageReturn == -1) return posNewLine + 1;
-
-        int pos = Math.Min(posNewLine, posCarriageReturn);
-        if (text.Substring(pos).StartsWith("\r\n"))
-        {
-            pos++;
-        }
-        return pos + 1;
-    }
-
-    /// --------------------------------------------------------------------------------------------
-    /// <summary>
-    /// Constructs an object representing a valid R statement from the <paramref name="tokenTree"/> 
+    /// Constructs an object representing a valid R statement from the <paramref name="token"/> 
     /// token tree. </summary>
     /// 
-    /// <param name="tokenTree">      The tree of R tokens to process </param>
+    /// <param name="token">  The tree of R tokens to process </param>
     /// <param name="tokensFlat"> A one-dimensional list of all the tokens in the script 
-    ///                           containing <paramref name="tokenTree"/> (useful for conveniently 
+    ///                           containing <paramref name="token"/> (useful for conveniently 
     ///                           reconstructing the text representation of the statement).</param>
     /// --------------------------------------------------------------------------------------------
-    public RStatement(RToken tokenTree, List<RToken> tokensFlat)
+    public RStatement(RToken token, List<RToken> tokensFlat)
     {
         var assignments = new HashSet<string> { "->", "->>", "<-", "<<-", "=" };
-        IsAssignment = tokenTree.TokenType == RToken.TokenTypes.ROperatorBinary && assignments.Contains(tokenTree.Lexeme.Text);
+        IsAssignment = token.TokenType == RToken.TokenTypes.ROperatorBinary 
+                       && assignments.Contains(token.Lexeme.Text);
 
-        StartPos = tokenTree.ScriptPosStartStatement;
-        uint endPos = tokenTree.ScriptPosEndStatement;
+        StartPos = token.ScriptPosStartStatement;
+        uint endPos = token.ScriptPosEndStatement;
+        TextNoFormatting = GetTextNoFormatting(tokensFlat, StartPos, endPos);
+
+        // create a lossless text representation of the statement including all presentation
+        // information (e.g. spaces, newlines, comments etc.)
         int startPosAdjustment = 0;
         bool tokenPrevIsEndStatement = false;
         bool firstNewLineFound = false;
         Text = "";
-        TextNoFormatting = "";
-        foreach (RToken token in tokensFlat)
+        foreach (RToken tokenFlat in tokensFlat)
         {
-            //todo
-            if (token.TokenType == RToken.TokenTypes.REmpty) continue;
+            if (tokenFlat.TokenType == RToken.TokenTypes.REmpty) continue;
 
-            uint tokenStartPos = token.ScriptPosStartStatement;
+            uint tokenStartPos = tokenFlat.ScriptPosStartStatement;
             if (tokenStartPos < StartPos)
             {
-                tokenPrevIsEndStatement = token.TokenType == RToken.TokenTypes.REndStatement;
+                tokenPrevIsEndStatement = tokenFlat.TokenType == RToken.TokenTypes.REndStatement;
                 continue;
             }
-            string tokenText = token.Lexeme.Text;
+            string tokenText = tokenFlat.Lexeme.Text;
             if (tokenStartPos >= endPos)
             {
-                //todo check if this token has some presentation text that belongs with the current statement
+                // if next statement has presentation text that belongs with the current statement
                 if (!tokenPrevIsEndStatement
-                    && (token.IsPresentation || token.Lexeme.IsNewLine) //todo need 2nd part of check because some newlines are endstatements
+                    && tokenFlat.IsPresentation
                     && tokenText.Length > 0)
                 {
-                    //int splitPos = GetPresentationSplitPos(tokenText);
-                    //tokenText = tokenText.Substring(0, splitPos);
                     Text += tokenText;
-                    if (token.Lexeme.IsNewLine)
+                    if (tokenFlat.Lexeme.IsNewLine)
                     {
-                        TextNoFormatting += ";";
                         break;
                     }
                     continue;
@@ -114,45 +77,68 @@ public class RStatement
                 break;
             }
 
-            // edge case: todo ignore any presentation characters that belong to the previous statement
+            // ignore any presentation characters that belong to the previous statement
             if (Text == ""
                 && StartPos != 0
                 && !tokenPrevIsEndStatement 
                 && !firstNewLineFound
-                && (token.IsPresentation || token.Lexeme.IsNewLine) //todo need 2nd part of check because some newlines are endstatements                 
+                && tokenFlat.IsPresentation
                 && tokenText.Length > 0)
             {
-                if (token.Lexeme.IsNewLine)
+                if (tokenFlat.Lexeme.IsNewLine)
                 {
                     firstNewLineFound = true;
                 }
                 startPosAdjustment += tokenText.Length;
                 tokenText = "";
-                //int splitPos = GetPresentationSplitPos(tokenText);
-                //tokenText = tokenText.Substring(splitPos);
-                //startPosAdjustment = splitPos;
             }
             Text += tokenText;
-            tokenPrevIsEndStatement = token.TokenType == RToken.TokenTypes.REndStatement;
-
-            // for non format text, ignore presentation tokens and replace end statements with ;
-            if (token.TokenType == RToken.TokenTypes.REndStatement)
-            {
-                TextNoFormatting += ";";
-            }
-            else if (token.TokenType == RToken.TokenTypes.RKeyWord
-                     && (tokenText == "else" || tokenText == "in" || tokenText == "repeat"))
-            {
-                TextNoFormatting += " " + tokenText + " ";
-            }
-            else if (!token.IsPresentation) // ignore presentation tokens
-            {
-                TextNoFormatting += tokenText;
-            }
+            tokenPrevIsEndStatement = tokenFlat.TokenType == RToken.TokenTypes.REndStatement;
         }
-        // remove trailing `;` from TextNoFormatting (only needed to separate internal compound statements)
-        TextNoFormatting = TextNoFormatting.Trim(';');
         StartPos += (uint)startPosAdjustment;
     }
 
+    /// --------------------------------------------------------------------------------------------
+    /// <summary>
+    /// Returns a text representation of the statement, excluding all formatting information 
+    /// (e.g. spaces, newlines, comments etc.).
+    /// </summary>
+    /// <param name="tokensFlat"> Flat list of all the tokens in the script</param>
+    /// <param name="posStart">   The start position of the statement in the script</param>
+    /// <param name="posEnd">     The end position of the statement in the script</param>
+    /// <returns>                 A text representation of the statement, excluding all formatting
+    ///                           information</returns>
+    /// --------------------------------------------------------------------------------------------
+    private string GetTextNoFormatting(List<RToken> tokensFlat, 
+                                       uint posStart, uint posEnd)
+    {
+        string text = "";
+        foreach (RToken token in tokensFlat)
+        {
+            if (token.TokenType == RToken.TokenTypes.REmpty) continue;
+
+            uint tokenStartPos = token.ScriptPosStartStatement;
+            if (tokenStartPos < posStart) continue;
+            if (tokenStartPos >= posEnd) break;
+
+            if (token.TokenType == RToken.TokenTypes.REndStatement)
+            {
+                text += ";";
+            }
+            else if (token.TokenType == RToken.TokenTypes.RKeyWord
+                     && (token.Lexeme.Text == "else" 
+                         || token.Lexeme.Text == "in" 
+                         || token.Lexeme.Text == "repeat"))
+            {
+                text += " " + token.Lexeme.Text + " ";
+            }
+            else if (!token.IsPresentation) // ignore presentation tokens
+            {
+                text += token.Lexeme.Text;
+            }
+        }
+        // remove final trailing `;` (only needed to separate internal compound statements)
+        text = text.Trim(';');
+        return text;
+    }
 }
